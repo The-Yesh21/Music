@@ -6,11 +6,13 @@ import InsightsScreen from './screens/InsightsScreen';
 import LandingScreen from './screens/LandingScreen';
 import MiniPlayer from './components/MiniPlayer';
 import AIChatPanel from './components/AIChatPanel';
+import SettingsModal from './components/SettingsModal';
 import { useMusic } from './context/MusicContext';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing');
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { state } = useMusic();
 
   useEffect(() => {
@@ -73,9 +75,15 @@ export default function App() {
           <i className="fas fa-chart-line" />
           <span>Insights</span>
         </div>
+        <div style={{ flex: 1 }} className="desktop-flex-spacer"></div>
+        <div className="tab-item" onClick={() => setShowSettings(true)}>
+          <i className="fas fa-gear" />
+          <span>Config</span>
+        </div>
       </div>
 
       {showPlayer && <PlayerScreen onClose={() => setShowPlayer(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

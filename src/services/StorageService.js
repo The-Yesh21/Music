@@ -67,3 +67,18 @@ export const addToHistory = (song, currentHistory) => {
 // ─── Gemini AI Config ──────────────────────────────────────────────────────
 export const loadGeminiKey = () => get(KEYS.GEMINI_KEY) || '';
 export const saveGeminiKey = (key) => set(KEYS.GEMINI_KEY, key);
+
+// API Keys
+export const saveGroqKey = (key) => {
+  if (key) localStorage.setItem('groq_key', key);
+  else localStorage.removeItem('groq_key');
+};
+export const loadGroqKey = () => localStorage.getItem('groq_key');
+
+export const saveLastFmKey = (key) => {
+  if (key) localStorage.setItem('lastfm_key', key);
+  else localStorage.removeItem('lastfm_key');
+};
+export const loadLastFmKey = () => localStorage.getItem('lastfm_key');
+
+// User Data

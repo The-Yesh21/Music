@@ -196,6 +196,15 @@ input[type="range"]:active::-webkit-slider-thumb {
   100% { background-position: 200% 0;  }
 }
 
+@keyframes pulseText {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.2) drop-shadow(0 0 15px rgba(255,107,53,0.6)); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.pulse-text-animation {
+  animation: pulseText 3s ease-in-out infinite;
+}
+
 @keyframes fadeScale {
   from { opacity: 0; transform: scale(0.95) translateY(12px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -312,6 +321,7 @@ input[type="range"]:active::-webkit-slider-thumb {
   .tab-item i { font-size: 22px; width: 24px; text-align: center; }
   .tab-item span { font-size: 14px; font-weight: 700; }
   .desktop-only-logo { display: block !important; }
+  .desktop-flex-spacer { display: flex !important; }
 }
 
 /* ── Mini Player ─────────────────────────────────────── */
@@ -961,5 +971,55 @@ input[type="range"]:active::-webkit-slider-thumb {
   transition: opacity 0.2s;
 }
 .ai-play-all-btn:hover {
-  opacity: 0.9;
+}
+
+/* ── High-Fidelity Landing Animations ────────────────── */
+@keyframes textReveal {
+  0%   { opacity: 0; transform: translateY(24px); filter: blur(8px); }
+  100% { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+
+@keyframes shimmerEffect {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0;  }
+}
+
+@keyframes nebulaMove1 {
+  0%, 100% { transform: translate(0, 0) scale(1.02); }
+  33%      { transform: translate(6%, 5%) scale(1.08); }
+  66%      { transform: translate(-4%, 7%) scale(0.96); }
+}
+
+@keyframes nebulaMove2 {
+  0%, 100% { transform: translate(0, 0) scale(0.96); }
+  50%      { transform: translate(-8%, -5%) scale(1.04); }
+}
+
+@keyframes pageExitAnimation {
+  0%   { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.05); filter: blur(20px); }
+}
+
+.text-reveal-stagger {
+  opacity: 0;
+  animation: textReveal 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.shimmer-active {
+  background: linear-gradient(
+    120deg, 
+    #FF6B35 25%, 
+    #FFFFFF 40%, 
+    #C77DFF 55%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerEffect 4s linear infinite;
+  display: inline-block;
+}
+
+.landing-exit {
+  animation: pageExitAnimation 0.9s cubic-bezier(0.65, 0, 0.35, 1) forwards !important;
 }

@@ -1,48 +1,54 @@
-import { loadGeminiKey } from './StorageService';
+import { loadGroqKey } from './StorageService';
 
 export const processAIQuery = async (userMessage) => {
   try {
-    const key = loadGeminiKey();
+    const key = loadGroqKey();
     if (!key) {
       throw new Error("API_KEY_MISSING");
     }
 
     const systemPrompt = `You are an AI DJ for a music streaming app.
-The user will ask you for music (e.g. "play some chill lo-fi", "I need workout songs", "play Taylor Swift").
 Your goal is to return EXACTLY 5 highly accurate song search queries that match the user's request.
-Your response MUST be exclusively a raw, complete JSON array of strings in the exact format: ["Song Name - Artist Name", "Song Name - Artist Name"].`;
+Your response MUST be exclusively a raw, complete JSON array of strings in the exact format: ["Song Name - Artist Name", "Song Name - Artist Name"]. Do not include any conversational text.`;
 
     const payload = {
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
-      contents: [{
-        role: "user",
-        parts: [{ text: userMessage }]
-      }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7,
-      }
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage }
+      ],
+      temperature: 0.7,
+      max_completion_tokens: 1024,
+      top_p: 1,
+      stream: false
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      console.error('Gemini API Error:', response.statusText);
-      throw new Error("API_ERROR");
+      const errText = await response.text();
+      console.error('Groq API Error details:', errText);
+      throw new Error(`API_ERROR: ${response.status}`);
     }
 
     const data = await response.json();
-    const rawText = data.candidates[0].content.parts[0].text;
+    let rawText = data.choices[0].message.content;
+    
+    // Clean up potential markdown formatting that blocks JSON parsing
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
     
     const queries = JSON.parse(rawText);
+    
+    if (queries && Array.isArray(queries.queries)) {
+       return queries.queries;
+    }
     
     if (Array.isArray(queries)) {
       return queries;
@@ -55,6 +61,6 @@ Your response MUST be exclusively a raw, complete JSON array of strings in the e
         throw error;
     }
     console.error('AIChatService Execution Error:', error);
-    return [];
+    throw error;
   }
 };

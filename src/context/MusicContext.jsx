@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import AudioService from '../services/AudioService';
 import { JioSaavnAPI } from '../services/JioSaavnAPI';
-import { getGeminiRecommendations } from '../services/GeminiBridge';
+import { getSimilarTracksFromLastFm } from '../services/LastFmService';
 import {
   loadStats, loadFavorites, loadHistory, loadDislikes,
   incrementPlayCount, incrementSkipCount, saveFavorites, saveDislikes,
@@ -111,12 +111,12 @@ export const MusicProvider = ({ children }) => {
       // Pre-fetch suggestions
       (async () => {
         try {
-          const llmQueries = await getGeminiRecommendations(song.title, song.artist);
+          const similarQueries = await getSimilarTracksFromLastFm(song.title, song.artist);
           
-          if (llmQueries.length > 0) {
-            // ML Bridge Success: Rapidly map Gemini text strings into JioSaavn 320kbps URLs
+          if (similarQueries.length > 0) {
+            // Algorithmic Radio Success: Rapidly map LastFM text strings into JioSaavn 320kbps URLs
             // We'll scrape the top 10 closely matching songs in parallel
-            const fetchPromises = llmQueries.slice(0, 10).map(async (query) => {
+            const fetchPromises = similarQueries.slice(0, 10).map(async (query) => {
               try {
                 const results = await JioSaavnAPI.searchSongs(query);
                 return results.length > 0 ? results[0] : null;

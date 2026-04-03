@@ -158,10 +158,10 @@ export default function AIChatPanel() {
 
       {!isOpen && (
         <button 
-            className="ai-fab" 
+            className="ai-fab pressable" 
             onClick={() => setIsOpen(true)}
             style={{
-                bottom: state.currentSong ? 120 : 24
+                bottom: state.currentSong ? 140 : 80
             }}
         >
           <i className="fas fa-wand-magic-sparkles" />

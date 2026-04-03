@@ -73,9 +73,44 @@ html, body {
   background-color: var(--bg-dark);
 }
 
+/* App Layout Components */
+.app-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column-reverse; /* Mobile: tab-bar bottom, content top */
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-screen-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.mini-player-container {
+  flex-shrink: 0;
+  z-index: 60;
+  width: 100%;
+}
+
 @media (min-width: 768px) {
   #root {
     flex-direction: row;
+  }
+  .app-layout {
+    flex-direction: row; /* Desktop: sidebar left, content right */
   }
 }
 
@@ -219,10 +254,6 @@ input[type="range"]:active::-webkit-slider-thumb {
   padding: 8px 12px 24px;
   flex-shrink: 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   z-index: 50;
 }
 
@@ -281,10 +312,6 @@ input[type="range"]:active::-webkit-slider-thumb {
   .tab-item i { font-size: 22px; width: 24px; text-align: center; }
   .tab-item span { font-size: 14px; font-weight: 700; }
   .desktop-only-logo { display: block !important; }
-
-  .mini-player-container {
-    left: 240px !important;
-  }
 }
 
 /* ── Mini Player ─────────────────────────────────────── */

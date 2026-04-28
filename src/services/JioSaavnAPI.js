@@ -56,6 +56,42 @@ export const JioSaavnAPI = {
     return await JioSaavnAPI.searchSongs('Top 2024');
   },
 
+  searchByGenre: async (genre, limit = 10) => {
+    try {
+      // Map genre to search queries that JioSaavn understands
+      const genreMap = {
+        'Pop': 'Pop hits',
+        'Rock': 'Rock songs',
+        'Hip-Hop': 'Hip hop songs',
+        'R&B': 'R&B songs',
+        'Classical': 'Classical music',
+        'Jazz': 'Jazz music',
+        'EDM': 'EDM songs',
+        'Indie': 'Indie music',
+        'Bollywood': 'Bollywood hits',
+        'K-Pop': 'K-Pop songs',
+        'Metal': 'Metal songs',
+        'Country': 'Country music',
+        'Lo-Fi': 'Lo-fi beats',
+        'Latin': 'Latin hits',
+        'Punjabi': 'Punjabi hits',
+        'Sufi': 'Sufi music',
+        'Carnatic': 'Carnatic music',
+        'Reggaeton': 'Reggaeton hits',
+        'Synthwave': 'Synthwave',
+        'Ambient': 'Ambient music',
+        'Electronic': 'Electronic music',
+        'Chill': 'Chill music',
+      };
+      const query = genreMap[genre] || genre;
+      const results = await JioSaavnAPI.searchSongs(query);
+      return results.slice(0, limit);
+    } catch (e) {
+      console.error('API Error (Genre Search):', e);
+      return [];
+    }
+  },
+
   getSuggestions: async (songId) => {
     try {
       const resp = await fetch(`${API_BASE}/songs/${songId}/suggestions`);

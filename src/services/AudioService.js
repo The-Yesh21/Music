@@ -1,11 +1,37 @@
-// HTML5 Audio Service — web equivalent of expo-av
+// HTML5 Audio Service — web equivalent of expo-av with enhanced quality
 
 class AudioService {
   constructor() {
     this.audio = new Audio();
+    this.audioContext = null;
+    this.gainNode = null;
+    this.source = null;
+    this.analyser = null;
     this.statusCallback = null;
     this._intervalId = null;
     this._setupListeners();
+    this._initAudioContext();
+  }
+
+  _initAudioContext() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.audioContext = new AudioContext();
+        this.gainNode = this.audioContext.createGain();
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.gainNode.gain.value = 1.0;
+        
+        // Connect audio element to context for better quality processing
+        this.source = this.audioContext.createMediaElementSource(this.audio);
+        this.source.connect(this.analyser);
+        this.analyser.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
+      }
+    } catch (e) {
+      console.warn('Web Audio API not fully supported:', e);
+    }
   }
 
   _setupListeners() {
@@ -43,8 +69,18 @@ class AudioService {
 
   async loadAndPlay(uri) {
     if (this.statusCallback) this.statusCallback({ isBuffering: true, error: null });
+    
+    // Resume audio context if suspended (browser policy)
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
+    
+    // Set high-quality audio attributes
+    this.audio.crossOrigin = 'anonymous';
+    this.audio.preload = 'auto';
     this.audio.src = uri;
     this.audio.load();
+    
     try {
       await this.audio.play();
     } catch (e) {

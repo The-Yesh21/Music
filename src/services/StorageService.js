@@ -81,4 +81,30 @@ export const saveLastFmKey = (key) => {
 };
 export const loadLastFmKey = () => localStorage.getItem('lastfm_key');
 
+// DeepSeek API Key
+export const saveDeepSeekKey = (key) => {
+  if (key) localStorage.setItem('deepseek_key', key);
+  else localStorage.removeItem('deepseek_key');
+};
+export const loadDeepSeekKey = () => localStorage.getItem('deepseek_key');
+
+// Spotify API Keys (clientId and clientSecret)
+export const saveSpotifyKeys = (clientId, clientSecret) => {
+  if (clientId) localStorage.setItem('spotify_client_id', clientId);
+  else localStorage.removeItem('spotify_client_id');
+  if (clientSecret) localStorage.setItem('spotify_client_secret', clientSecret);
+  else localStorage.removeItem('spotify_client_secret');
+};
+export const loadSpotifyKeys = () => ({
+  clientId: localStorage.getItem('spotify_client_id') || '',
+  clientSecret: localStorage.getItem('spotify_client_secret') || ''
+});
+
+// Hugging Face API Token
+export const saveHuggingFaceKey = (key) => {
+  if (key) localStorage.setItem('hf_token', key);
+  else localStorage.removeItem('hf_token');
+};
+export const loadHuggingFaceKey = () => localStorage.getItem('hf_token');
+
 // User Data

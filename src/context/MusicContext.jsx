@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import AudioService from '../services/AudioService';
 import { JioSaavnAPI } from '../services/JioSaavnAPI';
-import { getSimilarTracksFromLastFm } from '../services/LastFmService';
+import { buildRadioPlaylist, extendRadioQueue } from '../services/PlaylistService';
 import {
   loadStats, loadFavorites, loadHistory, loadDislikes,
   incrementPlayCount, incrementSkipCount, saveFavorites, saveDislikes,
@@ -95,9 +95,13 @@ export const MusicProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_BUFFERING', isBuffering: true });
       
-      // Forcefully collapse the queue explicitly to the chosen song. 
-      // This obliterates the 'Search Results' list so the algorithmic radio controls the next track.
-      dispatch({ type: 'SET_QUEUE', queue: [song] });
+      // If a queue is explicitly provided (e.g. from search/AI results), use it
+      // Otherwise collapse the queue to the chosen song so radio controls next track
+      if (queueOpt && queueOpt.length > 1) {
+        dispatch({ type: 'SET_QUEUE', queue: queueOpt });
+      } else {
+        dispatch({ type: 'SET_QUEUE', queue: [song] });
+      }
 
       const s = stateRef.current;
       let stats = incrementPlayCount(song.id, s.stats);
@@ -108,45 +112,25 @@ export const MusicProvider = ({ children }) => {
       dispatch({ type: 'SET_SONG', song });
       await AudioService.loadAndPlay(song.uri);
 
-      // Pre-fetch suggestions
+      // Build a 20+ song radio playlist in the background
       (async () => {
         try {
-          const similarQueries = await getSimilarTracksFromLastFm(song.title, song.artist);
+          const existingQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
+          const dislikedIds = stateRef.current.dislikes;
           
-          if (similarQueries.length > 0) {
-            // Algorithmic Radio Success: Rapidly map LastFM text strings into JioSaavn 320kbps URLs
-            // We'll scrape the top 10 closely matching songs in parallel
-            const fetchPromises = similarQueries.slice(0, 10).map(async (query) => {
-              try {
-                const results = await JioSaavnAPI.searchSongs(query);
-                return results.length > 0 ? results[0] : null;
-              } catch (e) { return null; }
-            });
-
-            const scrapedSongs = await Promise.all(fetchPromises);
-            const validSongs = scrapedSongs.filter(s => s !== null);
-
-            if (validSongs.length > 0) {
-              const currentQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
-              const freshSongs = validSongs.filter(sq => !currentQueueIds.has(sq.id) && !stateRef.current.dislikes.has(sq.id));
-              // Splice them into queue!
-              if (freshSongs.length > 0) {
-                dispatch({ type: 'SET_QUEUE', queue: [...stateRef.current.queue, ...freshSongs] });
-                return; // End here, LLM succeeded
-              }
+          const radioSongs = await buildRadioPlaylist(song, { existingQueueIds, dislikedIds });
+          
+          if (radioSongs.length > 0) {
+            const currentQueue = stateRef.current.queue;
+            const currentIds = new Set(currentQueue.map(sq => sq.id));
+            const freshSongs = radioSongs.filter(sq => !currentIds.has(sq.id) && !stateRef.current.dislikes.has(sq.id));
+            
+            if (freshSongs.length > 0) {
+              dispatch({ type: 'SET_QUEUE', queue: [...currentQueue, ...freshSongs] });
             }
           }
-
-          // Fallback to Native JioSaavn engine
-          const suggestions = await JioSaavnAPI.getSuggestions(song.id);
-          const currentQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
-          const freshSongs = suggestions.filter(sq => !currentQueueIds.has(sq.id) && !stateRef.current.dislikes.has(sq.id));
-          if (freshSongs.length > 0) {
-            dispatch({ type: 'SET_QUEUE', queue: [...stateRef.current.queue, ...freshSongs] });
-          }
-
         } catch (e) {
-          console.error("Advanced Prefetch failed:", e);
+          console.error('Radio playlist build failed:', e);
         }
       })();
 
@@ -193,28 +177,33 @@ export const MusicProvider = ({ children }) => {
       return;
     }
     
-    // Infinite Radio Engine: fetch recommendations based on current song
+    // Infinite Radio Engine: extend the queue with more genre-matched songs
     try {
-      const suggestions = await JioSaavnAPI.getSuggestions(updatedState.currentSong.id);
-      const filteredSuggestions = suggestions.filter(s => 
-        s.id !== updatedState.currentSong.id && 
-        !updatedState.dislikes.has(s.id)
-      );
+      const existingQueueIds = new Set(updatedState.queue.map(sq => sq.id));
+      const extensionSongs = await extendRadioQueue(updatedState.currentSong, { existingQueueIds: existingQueueIds, dislikedIds: updatedState.dislikes });
       
-      if (filteredSuggestions.length > 0) {
-          const nextSong = filteredSuggestions[0];
-          const newQueue = [...updatedState.queue, ...filteredSuggestions];
-          dispatch({ type: 'SET_QUEUE', queue: newQueue });
-          playSong(nextSong);
-        } else {
-          if (updatedState.queue.length > 0) {
-            await playSong(updatedState.queue[0]);
-          }
+      if (extensionSongs.length > 0) {
+        const newQueue = [...updatedState.queue, ...extensionSongs];
+        dispatch({ type: 'SET_QUEUE', queue: newQueue });
+        await playSong(extensionSongs[0]);
+      } else {
+        // Last resort: JioSaavn native suggestions
+        const suggestions = await JioSaavnAPI.getSuggestions(updatedState.currentSong.id);
+        const filtered = suggestions.filter(s => 
+          s.id !== updatedState.currentSong.id && 
+          !updatedState.dislikes.has(s.id)
+        );
+        if (filtered.length > 0) {
+          dispatch({ type: 'SET_QUEUE', queue: [...updatedState.queue, ...filtered] });
+          await playSong(filtered[0]);
+        } else if (updatedState.queue.length > 0) {
+          await playSong(updatedState.queue[0]);
         }
-      } catch (e) {
-        console.error("Infinite Radio failed:", e);
-        if (updatedState.queue.length > 0) await playSong(updatedState.queue[0]);
       }
+    } catch (e) {
+      console.error('Infinite Radio failed:', e);
+      if (updatedState.queue.length > 0) await playSong(updatedState.queue[0]);
+    }
   };
 
   const skipPrev = async () => {

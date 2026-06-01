@@ -7,6 +7,7 @@ import {
   incrementPlayCount, incrementSkipCount, saveFavorites, saveDislikes,
   addToHistory, addListeningTime,
 } from '../services/StorageService';
+import { updateMLModel } from '../services/MLTreeEngine';
 
 const MusicContext = createContext(null);
 export const useMusic = () => useContext(MusicContext);
@@ -111,6 +112,9 @@ export const MusicProvider = ({ children }) => {
       
       dispatch({ type: 'SET_SONG', song });
       await AudioService.loadAndPlay(song.uri);
+      
+      // Update ML Decision Tree weights
+      updateMLModel(song, 'PLAY');
 
       // Build a 20+ song radio playlist in the background
       (async () => {
@@ -159,6 +163,7 @@ export const MusicProvider = ({ children }) => {
       dispatch({ type: 'ADD_SKIP' });
       const stats = incrementSkipCount(s.currentSong.id, s.stats);
       dispatch({ type: 'SET_STATS', stats });
+      updateMLModel(s.currentSong, 'SKIP');
     }
 
     // Refresh ref due to async closure
@@ -225,18 +230,36 @@ export const MusicProvider = ({ children }) => {
 
   const toggleFavorite = (songId) => {
     const favs = new Set(stateRef.current.favorites);
-    if (favs.has(songId)) favs.delete(songId);
+    const isFav = favs.has(songId);
+    if (isFav) favs.delete(songId);
     else favs.add(songId);
     dispatch({ type: 'SET_FAVORITES', favorites: favs });
     saveFavorites(favs);
+
+    // Update ML model
+    const song = stateRef.current.queue.find(s => s.id === songId) || 
+                 stateRef.current.history.find(s => s.id === songId) ||
+                 stateRef.current.currentSong;
+    if (song) {
+      updateMLModel(song, isFav ? 'UNLIKE' : 'LIKE');
+    }
   };
 
   const toggleDislike = (songId) => {
     const dislikes = new Set(stateRef.current.dislikes);
-    if (dislikes.has(songId)) dislikes.delete(songId);
+    const isDisliked = dislikes.has(songId);
+    if (isDisliked) dislikes.delete(songId);
     else dislikes.add(songId);
     dispatch({ type: 'SET_DISLIKES', dislikes });
     saveDislikes(dislikes);
+
+    // Update ML model
+    const song = stateRef.current.queue.find(s => s.id === songId) || 
+                 stateRef.current.history.find(s => s.id === songId) ||
+                 stateRef.current.currentSong;
+    if (song) {
+      updateMLModel(song, isDisliked ? 'UNDISLIKE' : 'DISLIKE');
+    }
   };
 
   return (

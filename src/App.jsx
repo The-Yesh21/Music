@@ -8,6 +8,7 @@ import MiniPlayer from './components/MiniPlayer';
 import AIChatPanel from './components/AIChatPanel';
 import SettingsModal from './components/SettingsModal';
 import { useMusic } from './context/MusicContext';
+import MLTasteTreeScreen from './screens/MLTasteTreeScreen';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing');
@@ -28,6 +29,7 @@ export default function App() {
       case 'home': return <HomeScreen onNavigate={setActiveTab} />;
       case 'library': return <LibraryScreen />;
       case 'insights': return <InsightsScreen />;
+      case 'taste-tree': return <MLTasteTreeScreen />;
       default: return <HomeScreen onNavigate={setActiveTab} />;
     }
   };
@@ -74,6 +76,10 @@ export default function App() {
         <div className={`tab-item ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
           <i className="fas fa-chart-line" />
           <span>Insights</span>
+        </div>
+        <div className={`tab-item ${activeTab === 'taste-tree' ? 'active' : ''}`} onClick={() => setActiveTab('taste-tree')}>
+          <i className="fas fa-network-wired" />
+          <span>Taste Tree</span>
         </div>
         <div style={{ flex: 1 }} className="desktop-flex-spacer"></div>
         <div className="tab-item" onClick={() => setShowSettings(true)}>

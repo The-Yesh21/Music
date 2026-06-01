@@ -29,6 +29,7 @@ const initialState = {
   consecutiveSkips: 0,
   penalizedMoods: new Set(),
   vocalClarityActive: true,
+  activeSoundstage: '3D Immersive BGM',
 };
 
 const reducer = (state, action) => {
@@ -44,6 +45,7 @@ const reducer = (state, action) => {
     case 'SET_DISLIKES': return { ...state, dislikes: action.dislikes };
     case 'SET_HISTORY': return { ...state, history: action.history };
     case 'SET_CLARITY': return { ...state, vocalClarityActive: action.value };
+    case 'SET_SOUNDSTAGE': return { ...state, activeSoundstage: action.value };
     case 'ADD_SKIP':
       const newSkips = state.consecutiveSkips + 1;
       const newPenalized = new Set(state.penalizedMoods);
@@ -91,6 +93,9 @@ export const MusicProvider = ({ children }) => {
       }
       if (status.vocalClarityActive !== undefined) {
         dispatch({ type: 'SET_CLARITY', value: status.vocalClarityActive });
+      }
+      if (status.activeSoundstage !== undefined) {
+        dispatch({ type: 'SET_SOUNDSTAGE', value: status.activeSoundstage });
       }
     });
     return () => AudioService.setStatusCallback(null);

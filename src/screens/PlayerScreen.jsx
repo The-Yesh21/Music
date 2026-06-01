@@ -325,7 +325,7 @@ export default function PlayerScreen({ onClose }) {
             >
               {currentSong.artist}
             </p>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 16 }}>
               <button 
                 onClick={toggleVocalClarity}
                 style={{
@@ -349,6 +349,43 @@ export default function PlayerScreen({ onClose }) {
                 <i className="fas fa-microphone-lines" style={{ fontSize: 13 }} />
                 Vocals Clarity Mode: {state.vocalClarityActive ? 'ON' : 'OFF'}
               </button>
+
+              {state.vocalClarityActive && (
+                <div 
+                  className="fade-in"
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 8, 
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '1.5px',
+                    color: state.activeSoundstage === 'Studio Vocal Stage' ? 'var(--accent-light)' : 'var(--accent-secondary)',
+                    background: 'rgba(0,0,0,0.3)',
+                    padding: '6px 16px',
+                    borderRadius: 99,
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'all 0.4s ease-in-out',
+                    boxShadow: state.activeSoundstage === 'Studio Vocal Stage' 
+                      ? '0 0 12px rgba(255, 107, 53, 0.1)' 
+                      : '0 0 12px rgba(199, 125, 255, 0.1)'
+                  }}
+                >
+                  <span style={{ 
+                    display: 'inline-block',
+                    width: 6, 
+                    height: 6, 
+                    borderRadius: '50%', 
+                    background: state.activeSoundstage === 'Studio Vocal Stage' ? 'var(--accent)' : 'var(--accent-secondary)',
+                    boxShadow: state.activeSoundstage === 'Studio Vocal Stage' 
+                      ? '0 0 8px var(--accent)' 
+                      : '0 0 8px var(--accent-secondary)',
+                    transition: 'all 0.4s ease-in-out'
+                  }} />
+                  <span>Audio Stage: {state.activeSoundstage || '3D Immersive BGM'}</span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -94,27 +94,48 @@ export const MusicProvider = ({ children }) => {
 
   const playSong = async (song, queueOpt = null) => {
     try {
-      dispatch({ type: 'SET_BUFFERING', isBuffering: true });
-      
+      dispatch({ type: 'SET_BUFFERING', value: true });
+
+      // Resolve streaming URL dynamically if song is a local taste song or lacks a valid URL
+      let playableSong = { ...song };
+      if (!song.uri || String(song.id).startsWith('taste_')) {
+        try {
+          const searchResults = await JioSaavnAPI.searchSongs(`${song.title} ${song.artist}`);
+          if (searchResults && searchResults.length > 0) {
+            const match = searchResults[0];
+            playableSong = {
+              ...match,
+              // Retain local ML variables for training
+              bpm: song.bpm || match.bpm || 100,
+              mood: song.mood || match.mood || 'Neutral',
+              rating: song.rating || match.rating || 50
+            };
+          }
+        } catch (e) {
+          console.warn('Failed to dynamically resolve JioSaavn stream:', e);
+        }
+      }
+
       // If a queue is explicitly provided (e.g. from search/AI results), use it
       // Otherwise collapse the queue to the chosen song so radio controls next track
       if (queueOpt && queueOpt.length > 1) {
-        dispatch({ type: 'SET_QUEUE', queue: queueOpt });
+        const updatedQueue = queueOpt.map(q => q.id === song.id ? playableSong : q);
+        dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
       } else {
-        dispatch({ type: 'SET_QUEUE', queue: [song] });
+        dispatch({ type: 'SET_QUEUE', queue: [playableSong] });
       }
 
       const s = stateRef.current;
-      let stats = incrementPlayCount(song.id, s.stats);
+      let stats = incrementPlayCount(playableSong.id, s.stats);
       dispatch({ type: 'SET_STATS', stats });
-      let history = addToHistory(song, s.history);
+      let history = addToHistory(playableSong, s.history);
       dispatch({ type: 'SET_HISTORY', history });
       
-      dispatch({ type: 'SET_SONG', song });
-      await AudioService.loadAndPlay(song.uri);
+      dispatch({ type: 'SET_SONG', song: playableSong });
+      await AudioService.loadAndPlay(playableSong.uri);
       
       // Update ML Decision Tree weights
-      updateMLModel(song, 'PLAY');
+      updateMLModel(playableSong, 'PLAY');
 
       // Build a 20+ song radio playlist in the background
       (async () => {
@@ -122,7 +143,7 @@ export const MusicProvider = ({ children }) => {
           const existingQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
           const dislikedIds = stateRef.current.dislikes;
           
-          const radioSongs = await buildRadioPlaylist(song, { existingQueueIds, dislikedIds });
+          const radioSongs = await buildRadioPlaylist(playableSong, { existingQueueIds, dislikedIds });
           
           if (radioSongs.length > 0) {
             const currentQueue = stateRef.current.queue;

@@ -93,6 +93,9 @@ export const JioSaavnAPI = {
   },
 
   getSuggestions: async (songId) => {
+    if (!songId || String(songId).startsWith('taste_')) {
+      return [];
+    }
     try {
       const resp = await fetch(`${API_BASE}/songs/${songId}/suggestions`);
       if (!resp.ok) throw new Error('Failed to fetch suggestions');

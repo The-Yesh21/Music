@@ -4,7 +4,7 @@ export const getSimilarTracksFromLastFm = async (trackName, artistName) => {
   try {
     const key = loadLastFmKey();
     if (!key) {
-      console.warn('Last.fm API Key is missing. Fallback to native suggestions.');
+      console.log('Last.fm recommendations bypassed (key not configured).');
       return [];
     }
 

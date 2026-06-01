@@ -4,7 +4,7 @@ export const getGeminiRecommendations = async (seedSong, seedArtist) => {
   try {
     const key = loadGeminiKey();
     if (!key) {
-      console.warn('Gemini AI Key is missing. Fallback to native suggestions.');
+      console.log('Gemini recommendations bypassed (key not configured).');
       return [];
     }
 

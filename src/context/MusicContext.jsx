@@ -182,7 +182,7 @@ export const MusicProvider = ({ children }) => {
     if (stateRef.current.isPlaying) {
       await AudioService.pause();
     } else {
-      await AudioService.resume();
+      await AudioService.play();
     }
   };
 

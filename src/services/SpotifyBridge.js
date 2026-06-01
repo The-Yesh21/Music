@@ -80,7 +80,11 @@ export const getSpotifyRecommendations = async (seedSong, seedArtist) => {
     });
 
   } catch (error) {
-    console.error('Spotify Bridge Error:', error);
+    if (error.message === 'Spotify keys are missing.') {
+      console.log('Spotify recommendations bypassed (keys not configured).');
+    } else {
+      console.warn('Spotify Bridge Error:', error.message || error);
+    }
     return [];
   }
 };

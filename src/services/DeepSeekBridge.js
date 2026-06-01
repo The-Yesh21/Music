@@ -4,7 +4,7 @@ export const getDeepSeekRecommendations = async (seedSong, seedArtist) => {
   try {
     const key = loadDeepSeekKey();
     if (!key) {
-      console.warn('DeepSeek AI Key is missing. Fallback to native suggestions.');
+      console.log('DeepSeek recommendations bypassed (key not configured).');
       return [];
     }
 

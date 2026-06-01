@@ -9,7 +9,7 @@ export const getHuggingFaceRecommendations = async (seedSong, seedArtist) => {
   try {
     const token = loadHuggingFaceKey();
     if (!token) {
-      console.warn('Hugging Face token is missing. Skipping HF recommendations.');
+      console.log('Hugging Face recommendations bypassed (token not configured).');
       return [];
     }
 

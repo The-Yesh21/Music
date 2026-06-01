@@ -117,11 +117,17 @@ export const MusicProvider = ({ children }) => {
       }
 
       // If a queue is explicitly provided (e.g. from search/AI results), use it
-      // Otherwise collapse the queue to the chosen song so radio controls next track
       if (queueOpt && queueOpt.length > 1) {
         const updatedQueue = queueOpt.map(q => q.id === song.id ? playableSong : q);
         dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
-      } else {
+      } 
+      // If the song is already in the existing queue, preserve the queue (replacing the placeholder if needed)
+      else if (stateRef.current.queue.some(q => q.id === song.id)) {
+        const updatedQueue = stateRef.current.queue.map(q => q.id === song.id ? playableSong : q);
+        dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
+      } 
+      // Otherwise, collapse the queue to this single song and let the radio build recommendations
+      else {
         dispatch({ type: 'SET_QUEUE', queue: [playableSong] });
       }
 

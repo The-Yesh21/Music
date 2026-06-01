@@ -68,7 +68,7 @@ class AudioService {
         // ─── 1. PRE-MASTERING STAGE ───
         this.hpf = this.audioContext.createBiquadFilter();
         this.hpf.type = 'highpass';
-        this.hpf.frequency.setValueAtTime(32, time); // cuts sub-bass rumble
+        this.hpf.frequency.setValueAtTime(32, time); // cuts sub-bass mud
 
         this.subtractiveEq = this.audioContext.createBiquadFilter();
         this.subtractiveEq.type = 'peaking';
@@ -76,59 +76,51 @@ class AudioService {
         this.subtractiveEq.gain.setValueAtTime(-2.0, time); // carve low-mid mud
 
         // ─── 2. MID-SIDE (M/S) SPLITTER ───
-        // Mid = (L + R) * 0.5 | Side = (L - R) * 0.5
         this.msSplitter = this.audioContext.createChannelSplitter(2);
         
         this.midNode = this.audioContext.createGain();
-        this.midNode.gain.setValueAtTime(0.5, time);
+        this.midNode.gain.setValueAtTime(0.55, time); // Starts in balanced BGM mode
         
         this.sideNode = this.audioContext.createGain();
-        this.sideNode.gain.setValueAtTime(0.5, time);
+        this.sideNode.gain.setValueAtTime(1.15, time); // Starts in widescreen BGM mode
 
-        // Phase inversion node for Side subtraction: (L - R)
         const sideInverter = this.audioContext.createGain();
         sideInverter.gain.setValueAtTime(-1.0, time);
 
         // ─── 3. MID PATH (Vocal Presence & Bass Core) ───
-        // Low Band Compressor for solid sub-bass
         this.midLowComp = this.audioContext.createDynamicsCompressor();
         this.midLowComp.threshold.setValueAtTime(-14, time);
         this.midLowComp.ratio.setValueAtTime(4.0, time);
 
-        // Vocal Band Compressor for centered vocals
         this.midVocalComp = this.audioContext.createDynamicsCompressor();
-        this.midVocalComp.threshold.setValueAtTime(-15, time);
+        this.midVocalComp.threshold.setValueAtTime(-12, time);
         this.midVocalComp.ratio.setValueAtTime(3.0, time);
         this.midVocalComp.attack.setValueAtTime(0.015, time);
         this.midVocalComp.release.setValueAtTime(0.18, time);
 
-        // Tube Exciter to add gorgeous harmonics
         this.midExciter = this.audioContext.createWaveShaper();
         this.midExciter.curve = this.makeTubeSaturationCurve(1.6);
         this.midExciter.oversample = '4x';
 
         // ─── 4. SIDE PATH (Stereo Sparkle & Ducking) ───
-        // Dynamic Sidechain ducking filter centered at 2.2kHz
         this.sidechainDucker = this.audioContext.createBiquadFilter();
         this.sidechainDucker.type = 'peaking';
         this.sidechainDucker.frequency.setValueAtTime(2200, time);
         this.sidechainDucker.Q.setValueAtTime(1.0, time);
-        this.sidechainDucker.gain.setValueAtTime(0, time); // Dynamic VAD ducking
+        this.sidechainDucker.gain.setValueAtTime(0, time); 
 
-        // Haas delay line (Right Side delay for massive width)
         this.sideHaasDelay = this.audioContext.createDelay(0.1);
-        this.sideHaasDelay.delayTime.setValueAtTime(0.024, time); // 24ms Haas widener
+        this.sideHaasDelay.delayTime.setValueAtTime(0.024, time); 
         this.sideHaasGain = this.audioContext.createGain();
-        this.sideHaasGain.gain.setValueAtTime(0.85, time); // Wide 3D active initially
+        this.sideHaasGain.gain.setValueAtTime(0.85, time); 
 
         // ─── 5. ALGORITHMIC ROOM REVERB (Schroeder space) ───
         this.reverbWet = this.audioContext.createGain();
-        this.reverbWet.gain.setValueAtTime(0.18, time); // initial spatial room wet mix
+        this.reverbWet.gain.setValueAtTime(0.22, time); 
         
         this.reverbDry = this.audioContext.createGain();
-        this.reverbDry.gain.setValueAtTime(0.82, time);
+        this.reverbDry.gain.setValueAtTime(0.78, time);
 
-        // Create 4 parallel Comb filters (delay lines with feedback)
         const combTimes = [0.0297, 0.0371, 0.0411, 0.0437];
         const combFeedback = 0.74;
         this.combFilters = combTimes.map((delayTime) => {
@@ -138,15 +130,12 @@ class AudioService {
           const feedback = this.audioContext.createGain();
           feedback.gain.setValueAtTime(combFeedback, time);
           
-          // Feedback loop connection
           delay.connect(feedback);
           feedback.connect(delay);
           return delay;
         });
 
-        // Create 2 series Allpass filters for diffusion density
         const allpassTimes = [0.005, 0.0017];
-        const allpassFeedback = 0.70;
         this.allpassFilters = allpassTimes.map((delayTime) => {
           const allpass = this.audioContext.createBiquadFilter();
           allpass.type = 'allpass';
@@ -154,8 +143,7 @@ class AudioService {
           return allpass;
         });
 
-        // ─── 6. MID-SIDE RE-MERGER (M/S to L/R) ───
-        // Left = Mid + Side | Right = Mid - Side
+        // ─── 6. MID-SIDE RE-MERGER ───
         this.msMergerLeft = this.audioContext.createGain();
         this.msMergerRight = this.audioContext.createGain();
         
@@ -169,93 +157,77 @@ class AudioService {
         this.softClipper.curve = this.makeSoftClipperCurve();
 
         this.limiter = this.audioContext.createDynamicsCompressor();
-        this.limiter.threshold.setValueAtTime(-1.0, time); // Hard ceiling at -1dB
+        this.limiter.threshold.setValueAtTime(-1.0, time); 
         this.limiter.knee.setValueAtTime(0, time); 
         this.limiter.ratio.setValueAtTime(20.0, time); 
         this.limiter.attack.setValueAtTime(0.001, time); 
         this.limiter.release.setValueAtTime(0.05, time);
 
         this.lufsGain = this.audioContext.createGain();
-        this.lufsGain.gain.setValueAtTime(0.92, time); // LUFS Target gain normalizer
+        this.lufsGain.gain.setValueAtTime(0.92, time); 
 
-        // ────────────── CONNECT MULTI-ADAPTING DSP GRAPH ──────────────
+        // ────────────── CONNECT HIGH-FIDELITY DSP GRAPH ──────────────
         this.source = this.audioContext.createMediaElementSource(this.audio);
         
-        // Input -> HPF -> Subtractive EQ
         this.source.connect(this.hpf);
         this.hpf.connect(this.subtractiveEq);
 
-        // Subtractive EQ -> Mid/Side Splitter
         this.subtractiveEq.connect(this.msSplitter);
 
-        // Mid extraction: L + R -> midNode
-        this.msSplitter.connect(this.midNode, 0); // L
-        this.msSplitter.connect(this.midNode, 1); // R
+        this.msSplitter.connect(this.midNode, 0); 
+        this.msSplitter.connect(this.midNode, 1); 
 
-        // Side extraction: L - R -> sideNode
-        this.msSplitter.connect(this.sideNode, 0); // L
-        this.msSplitter.connect(sideInverter, 1);  // R inverted
+        this.msSplitter.connect(this.sideNode, 0); 
+        this.msSplitter.connect(sideInverter, 1);  
         sideInverter.connect(this.sideNode);
 
-        // --- MID PATH CONNECTIONS ---
-        // Mid -> Low/Mid Compressors -> Exciter
+        // Mid path
         this.midNode.connect(this.midLowComp);
         this.midLowComp.connect(this.midVocalComp);
         this.midVocalComp.connect(this.midExciter);
 
-        // --- SIDE PATH CONNECTIONS ---
-        // Side -> Vocal Ducker
+        // Side path
         this.sideNode.connect(this.sidechainDucker);
 
-        // Side Splitter for Side widening
         const sideSplit = this.audioContext.createChannelSplitter(2);
         this.sidechainDucker.connect(sideSplit);
 
-        // Side Widening merger (Haas on right channel)
         const sideHaasMerger = this.audioContext.createChannelMerger(2);
-        sideSplit.connect(sideHaasMerger, 0, 0); // Left Side direct
+        sideSplit.connect(sideHaasMerger, 0, 0); 
         
-        sideSplit.connect(this.sideHaasDelay, 1); // Right Side delayed
+        sideSplit.connect(this.sideHaasDelay, 1); 
         this.sideHaasDelay.connect(this.sideHaasGain);
         this.sideHaasGain.connect(sideHaasMerger, 0, 1);
 
-        // --- SCHROEDER REVERB GRAPH (3D ROOM) ---
-        // Connect Side path to Reverb Dry & Reverb Wet
         sideHaasMerger.connect(this.reverbDry);
         
-        // Wet path: Parallel Comb filter banks
         this.combFilters.forEach((comb) => {
           sideHaasMerger.connect(comb);
           comb.connect(this.reverbWet);
         });
 
-        // Wet path: Series Allpass diffusion filters
         let allpassOutput = this.reverbWet;
         this.allpassFilters.forEach((ap) => {
           allpassOutput.connect(ap);
           allpassOutput = ap;
         });
 
-        // Combine Dry & Reverb Wet into Side Output
         const sideOut = this.audioContext.createGain();
         this.reverbDry.connect(sideOut);
-        allpassOutput.connect(sideOut); // merged wet
+        allpassOutput.connect(sideOut); 
 
-        // --- RE-MERGING MID AND SIDE TO LEFT & RIGHT ---
-        // Left Output = Mid + Side
+        // Re-merging
+        this.msMergerLeft.connect(this.msMerger, 0, 0);
+        this.msMergerRight.connect(this.msMerger, 0, 1);
+
         this.midExciter.connect(this.msMergerLeft);
         sideOut.connect(this.msMergerLeft);
 
-        // Right Output = Mid - Side
         this.midExciter.connect(this.msMergerRight);
         sideOut.connect(sideReinv);
         sideReinv.connect(this.msMergerRight);
 
-        // Merge L/R channels back
-        this.msMergerLeft.connect(this.msMerger, 0, 0);
-        this.msMergerRight.connect(this.msMerger, 0, 1);
-
-        // --- FINAL OUT CONNECTIONS ---
+        // Limiting cell
         this.msMerger.connect(this.softClipper);
         this.softClipper.connect(this.limiter);
         this.limiter.connect(this.lufsGain);
@@ -263,7 +235,6 @@ class AudioService {
         this.analyser.connect(this.gainNode);
         this.gainNode.connect(this.audioContext.destination);
 
-        // Start dynamic VAD spectrum tracking loop
         this._startVADLoop();
       }
     } catch (e) {
@@ -271,7 +242,6 @@ class AudioService {
     }
   }
 
-  // Harmonic Exciter tube curve
   makeTubeSaturationCurve(gain = 1.5) {
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
@@ -287,7 +257,6 @@ class AudioService {
     return curve;
   }
 
-  // Soft clipper knee curve
   makeSoftClipperCurve() {
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
@@ -346,7 +315,6 @@ class AudioService {
       const dataArray = new Uint8Array(bufferLength);
       this.analyser.getByteFrequencyData(dataArray);
 
-      // Extract band energy levels
       let bassSum = 0;
       for (let i = 0; i <= 2; i++) bassSum += dataArray[i] || 0;
       const bassEnergy = bassSum / 3;
@@ -364,13 +332,12 @@ class AudioService {
         return; 
       }
 
-      // Vocal Dynamic Ratio algorithm
       const vocalRatio = vocalEnergy / (bassEnergy * 0.90 + trebleEnergy * 0.35 + 0.1);
       const targetState = vocalRatio > 1.05 ? 'LYRICS' : 'BGM';
 
       if (targetState !== lastState) {
         consecCount++;
-        if (consecCount >= 2) { // 240ms debounce
+        if (consecCount >= 2) { 
           lastState = targetState;
           consecCount = 0;
           
@@ -387,29 +354,37 @@ class AudioService {
   }
 
   transitionToVocalFocus() {
-    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp) return;
+    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp || !this.midNode || !this.sideNode) return;
     const time = this.audioContext.currentTime;
-    const duration = 0.45; // 450ms smooth vocal focus glide
+    const duration = 0.45; 
     
     this._currentSoundstage = 'Spotify Vocals Focus';
 
-    // 1. Less Bass: Lift HPF low-cut to 100Hz to remove low instrumental masking
+    // 1. Less Bass: Lift HPF low-cut to 100Hz to remove sub-bass masking
     this.hpf.frequency.setValueAtTime(this.hpf.frequency.value, time);
     this.hpf.frequency.linearRampToValueAtTime(100, time + duration);
     
-    // 2. Vocal Sidechain Ducking: Carve a -3.0dB pocket in background instruments (Side Path) at 2.2kHz
+    // 2. Vocal Sidechain Ducking: Carve a -3.5dB pocket in Side Path cymbals/synths
     this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
-    this.sidechainDucker.gain.linearRampToValueAtTime(-3.5, time + duration); // Ducks cymbals/pads for vocal center focus
+    this.sidechainDucker.gain.linearRampToValueAtTime(-3.8, time + duration); 
 
-    // 3. Narrow Stereo: Collapse side widener gain down to 0.06 to bring vocal center rock-solid
+    // 3. MAIN STAGE VOCAL BOOST: Slide Mid (vocals center) gain UP to 1.30 (+2.5dB dual-channel presence boost!)
+    this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
+    this.midNode.gain.linearRampToValueAtTime(1.30, time + duration);
+
+    // 4. BGM DUCKING: Slide Side (stereo background music) gain DOWN to 0.28 to push backing tracks back
+    this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
+    this.sideNode.gain.linearRampToValueAtTime(0.28, time + duration);
+
+    // 5. Narrow Stereo: Collapse side Haas delay gain to 0.05 to lock vocals dead center
     this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.06, time + duration); 
+    this.sideHaasGain.gain.linearRampToValueAtTime(0.05, time + duration); 
 
-    // 4. Intimate Reverb: Pull room wet reflections down to 4% mix for dry, high-definition vocals
+    // 6. Intimate Reverb: Pull room wet reflections down to 3% mix for dry vocal crispness
     this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.04, time + duration);
+    this.reverbWet.gain.linearRampToValueAtTime(0.03, time + duration);
 
-    // 5. Tight Vocal compression
+    // 7. Tight Vocal compression
     this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
     this.midVocalComp.threshold.linearRampToValueAtTime(-19, time + duration);
 
@@ -417,29 +392,37 @@ class AudioService {
   }
 
   transitionTo3DImmersive() {
-    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp) return;
+    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp || !this.midNode || !this.sideNode) return;
     const time = this.audioContext.currentTime;
-    const duration = 0.65; // 650ms deep wide immersive BGM expander glide
+    const duration = 0.65; 
     
     this._currentSoundstage = 'Spotify 3D Spatial Space';
 
-    // 1. Warm Sub-bass: Pull HPF low-cut down to 32Hz for massive warm low-end
+    // 1. Warm Deep Bass: Pull HPF low-cut down to 32Hz
     this.hpf.frequency.setValueAtTime(this.hpf.frequency.value, time);
     this.hpf.frequency.linearRampToValueAtTime(32, time + duration);
     
-    // 2. Restore Sidechain: Flatten the side ducking to let instruments breathe fully
+    // 2. Restore Sidechain: Flatten the side ducking completely
     this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
     this.sidechainDucker.gain.linearRampToValueAtTime(0.0, time + duration); 
 
-    // 3. Expand Stereo Haas: Ramps side widener delay gain up to 0.85 for massive 3D width
+    // 3. Balanced Mid: Pull Mid gain down to 0.55 to open a spacious center pocket for BGM
+    this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
+    this.midNode.gain.linearRampToValueAtTime(0.55, time + duration);
+
+    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain UP to 1.15 to wrap music around L/R
+    this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
+    this.sideNode.gain.linearRampToValueAtTime(1.15, time + duration);
+
+    // 5. Expand Haas: Ramps side Haas delay gain up to 0.85 for massive 3D width
     this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
     this.sideHaasGain.gain.linearRampToValueAtTime(0.85, time + duration); 
 
-    // 4. Immersive Room: Open Schroeder Reverb wet gain up to 20% mix for a luxurious, glowing 3D space
+    // 6. Immersive Room: Open Schroeder Reverb wet gain up to 22% mix for gorgeous glowing room depth
     this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.20, time + duration);
+    this.reverbWet.gain.linearRampToValueAtTime(0.22, time + duration);
 
-    // 5. Relax Mid compression
+    // 7. Relax Mid compression
     this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
     this.midVocalComp.threshold.linearRampToValueAtTime(-10, time + duration);
 
@@ -448,7 +431,7 @@ class AudioService {
 
   setVocalClarityMode(active) {
     this.isClarityModeActive = active;
-    if (!this.audioContext || !this.hpf || !this.subtractiveEq || !this.sidechainDucker || !this.sideHaasGain || !this.midLowComp || !this.midVocalComp || !this.reverbWet) return;
+    if (!this.audioContext || !this.hpf || !this.subtractiveEq || !this.sidechainDucker || !this.sideHaasGain || !this.midLowComp || !this.midVocalComp || !this.reverbWet || !this.midNode || !this.sideNode) return;
 
     const time = this.audioContext.currentTime;
     if (active) {
@@ -458,6 +441,10 @@ class AudioService {
       this.hpf.frequency.setValueAtTime(20, time);
       this.subtractiveEq.gain.setValueAtTime(0, time);
       this.sidechainDucker.gain.setValueAtTime(0, time);
+      
+      this.midNode.gain.setValueAtTime(1.0, time);
+      this.sideNode.gain.setValueAtTime(1.0, time);
+
       this.sideHaasGain.gain.setValueAtTime(0, time); // Bypass stereo widening
       this.reverbWet.gain.setValueAtTime(0, time); // Bypass reverb room
       

@@ -1,4 +1,4 @@
-// HTML5 Audio Service — web equivalent of expo-av with enhanced quality
+// HTML5 Audio Service — web equivalent of expo-av with advanced dynamic equalizer and vocal clarity filters
 
 class AudioService {
   constructor() {
@@ -9,6 +9,14 @@ class AudioService {
     this.analyser = null;
     this.statusCallback = null;
     this._intervalId = null;
+
+    // Advanced dynamic equalizing DSP nodes for pristine vocals
+    this.highpassFilter = null;
+    this.vocalBoostFilter = null;
+    this.clarityFilter = null;
+    this.compressor = null;
+    this.isClarityModeActive = true; // Enabled by default for outstanding lyric crispness
+
     this._setupListeners();
     this._initAudioContext();
   }
@@ -22,10 +30,41 @@ class AudioService {
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 256;
         this.gainNode.gain.value = 1.0;
-        
-        // Connect audio element to context for better quality processing
+
+        // 1. Dynamics Compressor: Tightens instrumentation, brings low-volume vocal nuances forward
+        this.compressor = this.audioContext.createDynamicsCompressor();
+        this.compressor.threshold.setValueAtTime(-16, this.audioContext.currentTime); // -16dB compression threshold
+        this.compressor.knee.setValueAtTime(8, this.audioContext.currentTime);
+        this.compressor.ratio.setValueAtTime(3.5, this.audioContext.currentTime);
+        this.compressor.attack.setValueAtTime(0.01, this.audioContext.currentTime);
+        this.compressor.release.setValueAtTime(0.20, this.audioContext.currentTime);
+
+        // 2. High-Pass Filter (HPF): Cuts sub-bass mud below 85 Hz to prevent bass masking of lower vocals
+        this.highpassFilter = this.audioContext.createBiquadFilter();
+        this.highpassFilter.type = 'highpass';
+        this.highpassFilter.frequency.setValueAtTime(85, this.audioContext.currentTime);
+        this.highpassFilter.Q.setValueAtTime(0.707, this.audioContext.currentTime);
+
+        // 3. Peaking Presence Filter: Boosts vocal articulation and consonant definition at 2.5 kHz
+        this.vocalBoostFilter = this.audioContext.createBiquadFilter();
+        this.vocalBoostFilter.type = 'peaking';
+        this.vocalBoostFilter.frequency.setValueAtTime(2500, this.audioContext.currentTime);
+        this.vocalBoostFilter.Q.setValueAtTime(1.2, this.audioContext.currentTime); 
+        this.vocalBoostFilter.gain.setValueAtTime(4.5, this.audioContext.currentTime); // +4.5dB vocal presence boost
+
+        // 4. High Shelf Clarity Filter: Enhances vocal "air", breaths, and sibilance brilliance above 8 kHz
+        this.clarityFilter = this.audioContext.createBiquadFilter();
+        this.clarityFilter.type = 'highshelf';
+        this.clarityFilter.frequency.setValueAtTime(8000, this.audioContext.currentTime);
+        this.clarityFilter.gain.setValueAtTime(2.5, this.audioContext.currentTime); // +2.5dB breath air boost
+
+        // Route source through DSP pipeline
         this.source = this.audioContext.createMediaElementSource(this.audio);
-        this.source.connect(this.analyser);
+        this.source.connect(this.highpassFilter);
+        this.highpassFilter.connect(this.vocalBoostFilter);
+        this.vocalBoostFilter.connect(this.clarityFilter);
+        this.clarityFilter.connect(this.compressor);
+        this.compressor.connect(this.analyser);
         this.analyser.connect(this.gainNode);
         this.gainNode.connect(this.audioContext.destination);
       }
@@ -60,6 +99,7 @@ class AudioService {
       positionMillis: Math.floor(this.audio.currentTime * 1000),
       durationMillis: isNaN(this.audio.duration) ? 0 : Math.floor(this.audio.duration * 1000),
       didJustFinish: false,
+      vocalClarityActive: this.isClarityModeActive
     });
   }
 
@@ -67,20 +107,46 @@ class AudioService {
     this.statusCallback = cb;
   }
 
+  setVocalClarityMode(active) {
+    this.isClarityModeActive = active;
+    if (!this.audioContext || !this.highpassFilter || !this.vocalBoostFilter || !this.clarityFilter || !this.compressor) return;
+
+    const time = this.audioContext.currentTime;
+    if (active) {
+      // Re-enable clarity boosts
+      this.highpassFilter.frequency.setValueAtTime(85, time);
+      this.vocalBoostFilter.gain.setValueAtTime(4.5, time);
+      this.clarityFilter.gain.setValueAtTime(2.5, time);
+      this.compressor.threshold.setValueAtTime(-16, time);
+    } else {
+      // Flat bypass mode
+      this.highpassFilter.frequency.setValueAtTime(20, time); // bypass low cut
+      this.vocalBoostFilter.gain.setValueAtTime(0, time);     // flat midrange
+      this.clarityFilter.gain.setValueAtTime(0, time);     // flat air shelf
+      this.compressor.threshold.setValueAtTime(0, time);    // flat compression dynamics
+    }
+
+    // Trigger state callbacks immediately
+    this._emit();
+  }
+
+  getVocalClarityMode() {
+    return this.isClarityModeActive;
+  }
+
   async loadAndPlay(uri) {
     if (this.statusCallback) this.statusCallback({ isBuffering: true, error: null });
-    
-    // Resume audio context if suspended (browser policy)
+
+    // Resume audio context if suspended (browser security policy)
     if (this.audioContext && this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
     }
-    
-    // Set high-quality audio attributes
+
     this.audio.crossOrigin = 'anonymous';
     this.audio.preload = 'auto';
     this.audio.src = uri;
     this.audio.load();
-    
+
     try {
       await this.audio.play();
     } catch (e) {
@@ -90,8 +156,8 @@ class AudioService {
   }
 
   async play() {
-    try { 
-      await this.audio.play(); 
+    try {
+      await this.audio.play();
     } catch (e) {
       if (this.statusCallback) this.statusCallback({ error: 'Playback failed.' });
     }

@@ -9,7 +9,7 @@ const formatTime = (totalSeconds) => {
 };
 
 export default function PlayerScreen({ onClose }) {
-  const { state, togglePlay, skipNext, skipPrev, seekTo, toggleFavorite, toggleDislike, playSong } = useMusic();
+  const { state, togglePlay, skipNext, skipPrev, seekTo, toggleFavorite, toggleDislike, playSong, toggleVocalClarity } = useMusic();
   const { currentSong, isPlaying, positionMillis, durationMillis, isBuffering, queue } = state;
   const [isClosing, setIsClosing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -325,6 +325,31 @@ export default function PlayerScreen({ onClose }) {
             >
               {currentSong.artist}
             </p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <button 
+                onClick={toggleVocalClarity}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  background: state.vocalClarityActive 
+                    ? 'linear-gradient(135deg, rgba(255,107,53,0.15), rgba(199,125,255,0.15))' 
+                    : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${state.vocalClarityActive ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+                  color: state.vocalClarityActive ? 'var(--accent-light)' : 'rgba(255,255,255,0.4)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: state.vocalClarityActive ? '0 0 16px var(--accent-glow)' : 'none',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <i className="fas fa-microphone-lines" style={{ fontSize: 13 }} />
+                Vocals Clarity Mode: {state.vocalClarityActive ? 'ON' : 'OFF'}
+              </button>
+            </div>
           </div>
 
           {/* Progress Bar */}

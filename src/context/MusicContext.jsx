@@ -28,6 +28,7 @@ const initialState = {
   // Multi-skip mood penalization memory
   consecutiveSkips: 0,
   penalizedMoods: new Set(),
+  vocalClarityActive: true,
 };
 
 const reducer = (state, action) => {
@@ -42,6 +43,7 @@ const reducer = (state, action) => {
     case 'SET_FAVORITES': return { ...state, favorites: action.favorites };
     case 'SET_DISLIKES': return { ...state, dislikes: action.dislikes };
     case 'SET_HISTORY': return { ...state, history: action.history };
+    case 'SET_CLARITY': return { ...state, vocalClarityActive: action.value };
     case 'ADD_SKIP':
       const newSkips = state.consecutiveSkips + 1;
       const newPenalized = new Set(state.penalizedMoods);
@@ -86,6 +88,9 @@ export const MusicProvider = ({ children }) => {
       }
       if (status.isPlaying !== undefined) {
         dispatch({ type: 'SET_PLAYING', value: status.isPlaying });
+      }
+      if (status.vocalClarityActive !== undefined) {
+        dispatch({ type: 'SET_CLARITY', value: status.vocalClarityActive });
       }
     });
     return () => AudioService.setStatusCallback(null);
@@ -289,11 +294,16 @@ export const MusicProvider = ({ children }) => {
     }
   };
 
+  const toggleVocalClarity = () => {
+    const nextState = !stateRef.current.vocalClarityActive;
+    AudioService.setVocalClarityMode(nextState);
+  };
+
   return (
     <MusicContext.Provider value={{ 
       state, 
       playSong,
-      togglePlay, skipNext, skipPrev, seekTo, toggleFavorite, toggleDislike,
+      togglePlay, skipNext, skipPrev, seekTo, toggleFavorite, toggleDislike, toggleVocalClarity,
       pauseSong: async () => { await AudioService.pause(); dispatch({ type: 'SET_PLAYING', value: false }); },
       resumeSong: async () => { await AudioService.play(); dispatch({ type: 'SET_PLAYING', value: true }); },
       stopSong: async () => { await AudioService.unload(); dispatch({ type: 'SET_PLAYING', value: false }); },

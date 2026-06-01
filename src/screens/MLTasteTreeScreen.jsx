@@ -272,6 +272,7 @@ export default function MLTasteTreeScreen() {
       {/* Interactive Tree Visualizer */}
       <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>Decision Split View</h2>
       <div 
+        className="taste-tree-scroll"
         style={{
           width: '100%',
           overflowX: 'auto',
@@ -281,7 +282,7 @@ export default function MLTasteTreeScreen() {
           border: '1px solid rgba(255,255,255,0.03)',
           marginBottom: '40px',
           display: 'flex',
-          justifyContent: 'center'
+          justifyContent: 'flex-start'
         }}
       >
         <div style={{ display: 'inline-flex', padding: '0 40px' }}>

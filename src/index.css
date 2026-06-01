@@ -1113,3 +1113,51 @@ input[type="range"]:active::-webkit-slider-thumb {
 .landing-exit {
   animation: pageExitAnimation 0.9s cubic-bezier(0.65, 0, 0.35, 1) forwards !important;
 }
+
+/* ── Vocal Clarity Mode pulsing beacon ───────────────── */
+@keyframes clarityPulse {
+  0% { box-shadow: 0 0 12px rgba(255, 107, 53, 0.4), 0 0 0 1px rgba(255, 107, 53, 0.1) inset; }
+  50% { box-shadow: 0 0 28px rgba(255, 107, 53, 0.8), 0 0 0 2px rgba(199, 125, 255, 0.3) inset; }
+  100% { box-shadow: 0 0 12px rgba(255, 107, 53, 0.4), 0 0 0 1px rgba(255, 107, 53, 0.1) inset; }
+}
+.clarity-active-glow {
+  animation: clarityPulse 2s infinite ease-in-out;
+}
+
+/* ── Taste Tree responsive styling & custom scrollbar ── */
+.taste-tree-scroll::-webkit-scrollbar {
+  height: 6px !important;
+}
+.taste-tree-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent-gradient) !important;
+  border-radius: 99px !important;
+}
+.taste-tree-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-radius: 99px !important;
+}
+
+/* ── Mobile Layout Adjustments (Widescreen to Mobile) ── */
+@media (max-width: 480px) {
+  .screen {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  h1 {
+    font-size: 24px !important;
+  }
+  h2 {
+    font-size: 18px !important;
+  }
+  .taste-step h2 {
+    font-size: 22px !important;
+  }
+  .taste-wizard {
+    padding: 24px 16px !important;
+  }
+  .ai-fab {
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 18px !important;
+  }
+}

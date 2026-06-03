@@ -53,7 +53,7 @@ export default function App() {
 
   if (activeTab === 'landing') {
     return (
-      <div style={{ display: 'flex', height: '100vh', width: '100vw', background: 'var(--bg-dark)' }}>
+      <div style={{ display: 'flex', height: '100vh', width: '100%', background: 'var(--bg-dark)' }}>
         {renderScreen()}
       </div>
     );

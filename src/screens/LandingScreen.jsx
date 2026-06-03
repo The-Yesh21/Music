@@ -22,7 +22,7 @@ export default function LandingScreen({ onGetStarted }) {
     <div className={isExiting ? 'landing-exit' : ''} style={{
       flex: 1,
       height: '100vh',
-      width: '100vw',
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

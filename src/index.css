@@ -82,7 +82,7 @@ html, body {
   display: flex;
   flex: 1;
   flex-direction: column-reverse; /* Mobile: tab-bar bottom, content top */
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
   position: relative;
@@ -1185,7 +1185,7 @@ input[type="range"]:active::-webkit-slider-thumb {
 .app-layout {
   display: flex;
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow: hidden;
   position: relative;
   background: var(--bg);
@@ -1209,7 +1209,7 @@ input[type="range"]:active::-webkit-slider-thumb {
 
 @media (min-width: 769px) {
   .app-layout {
-    flex-direction: row !important;
+    flex-direction: row-reverse !important;
   }
   .app-screen-area {
     padding-bottom: 88px;
@@ -1245,21 +1245,33 @@ input[type="range"]:active::-webkit-slider-thumb {
 
 @media (min-width: 769px) {
   .tab-bar {
-    position: relative !important;
+    position: fixed !important;
     flex-direction: column !important;
     width: 220px !important;
     height: 100vh !important;
     border-top: none !important;
-    border-right: 1px solid var(--border) !important;
+    border-left: 1px solid var(--border) !important;
+    border-right: none !important;
     padding: 32px 0 !important;
     background: var(--bg) !important;
     justify-content: flex-start !important;
     align-items: stretch !important;
     gap: 8px;
-    bottom: auto;
-    left: auto;
-    right: auto;
+    bottom: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: auto !important;
     box-shadow: none;
+    z-index: 100;
+  }
+
+  .app-main-content {
+    margin-right: 220px !important;
+    margin-left: 0 !important;
+    flex: 1;
+    overflow-x: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .desktop-only-logo {
@@ -1461,7 +1473,8 @@ input[type="range"]:active::-webkit-slider-thumb {
   .player-bar-container {
     bottom: 0;
     height: 72px;
-    left: 220px;
+    left: 0 !important;
+    right: 220px !important;
     border-top: 1px solid var(--border);
     background: rgba(12, 12, 20, 0.92);
   }
@@ -2028,5 +2041,17 @@ input[type="range"]:active::-webkit-slider-thumb {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 1px;
+}
+
+.decision-tree-container {
+  width: 100% !important;
+  overflow-x: hidden !important;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.tree-node-card, .song-card-row, .song-card-grid {
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 

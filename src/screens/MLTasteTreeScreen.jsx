@@ -87,6 +87,7 @@ export default function MLTasteTreeScreen() {
         {/* Node Box */}
         <div 
           onClick={() => setSelectedNode(node)}
+          className="tree-node-card"
           style={{
             width: '100%',
             background: isSelected 
@@ -204,7 +205,7 @@ export default function MLTasteTreeScreen() {
   };
 
   return (
-    <div className="screen fade-in" style={{ padding: '40px 20px 100px', overflowX: 'hidden' }}>
+    <div className="screen fade-in decision-tree-container" style={{ padding: '40px 20px 100px', overflowX: 'hidden' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>

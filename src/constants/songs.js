@@ -13,10 +13,12 @@ export const SONGS = [
   { id: '12', title: 'Quantum Pulse', artist: 'Voltage Kids', album: 'Electric Youth', duration: 182, artwork: 'https://picsum.photos/seed/song12/400/400', uri: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', genre: 'Electronic', year: 2023, mood: 'energetic' },
 ];
 
-export const formatDuration = (seconds) => {
+export const formatDuration = (secondsVal) => {
+  const seconds = parseInt(secondsVal, 10);
+  if (!seconds || isNaN(seconds)) return '--:--';
   const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
 export const formatMillis = (millis) => formatDuration(Math.floor(millis / 1000));

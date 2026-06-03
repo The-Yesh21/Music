@@ -10,12 +10,19 @@ const decodeEntity = (str) => {
             .replace(/&apos;/g, "'");
 };
 
+const getStreamUrl = (song) => {
+  const urls = song?.downloadUrl || song?.more_info?.encrypted_media_url;
+  if (Array.isArray(urls) && urls.length > 0) {
+    // Pick highest quality — always index 4 (320kbps)
+    return urls[4]?.url || urls[urls.length - 1]?.url;
+  }
+  return null;
+};
+
 const mapSong = (s) => {
   // Explicitly hunt for 320kbps for 5G High Quality stream. 
   // If not available, fallback seamlessly.
-  const highQualityUrl = s.downloadUrl?.find(d => d.quality === '320kbps')?.url 
-    || s.downloadUrl?.find(d => d.quality === '160kbps')?.url
-    || s.downloadUrl?.[0]?.url;
+  const highQualityUrl = getStreamUrl(s);
 
   // Extract 500x500 image for Player UI glassmorphism
   const artworkUrl = s.image?.find(i => i.quality === '500x500')?.url 

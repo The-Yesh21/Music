@@ -4,17 +4,34 @@ import LibraryScreen from './screens/LibraryScreen';
 import PlayerScreen from './screens/PlayerScreen';
 import InsightsScreen from './screens/InsightsScreen';
 import LandingScreen from './screens/LandingScreen';
-import MiniPlayer from './components/MiniPlayer';
+import Sidebar from './components/Sidebar';
+import PlayerBar from './components/PlayerBar';
+import Queue from './components/Queue';
 import AIChatPanel from './components/AIChatPanel';
 import SettingsModal from './components/SettingsModal';
 import { useMusic } from './context/MusicContext';
 import MLTasteTreeScreen from './screens/MLTasteTreeScreen';
+import { audioEngine } from './services/audioEngine';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('landing');
   const [showPlayer, setShowPlayer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { state } = useMusic();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const unlock = () => audioEngine.resume();
+    document.addEventListener('click', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+  }, []);
 
   useEffect(() => {
     const hasVisited = localStorage.getItem('hasVisitedEchoTune');
@@ -44,49 +61,34 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Sidebar on desktop / Tab Bar on mobile */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} setShowSettings={setShowSettings} />
+
       {/* Main Content Area */}
       <div className="app-main-content">
         <div className="app-screen-area">
           {renderScreen()}
         </div>
 
-        {/* MiniPlayer Dock - sits naturally at the bottom of the content area */}
+        {/* PlayerBar - bottom fixed player bar */}
         {state.currentSong && (
-          <div className="mini-player-container">
-            <MiniPlayer onPress={() => setShowPlayer(true)} />
-          </div>
+          <PlayerBar 
+            onToggleQueue={() => setShowQueue(!showQueue)} 
+            showQueue={showQueue} 
+            onPress={() => setShowPlayer(true)}
+          />
         )}
         
         <AIChatPanel />
       </div>
 
-      {/* Tab Bar / Sidebar */}
-      <div className="tab-bar">
-        <div className="desktop-only-logo">
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', color: 'transparent' }}>EchoTune</h1>
-        </div>
-        <div className={`tab-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
-          <i className="fas fa-house" />
-          <span>Home</span>
-        </div>
-        <div className={`tab-item ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}>
-          <i className="fas fa-search" />
-          <span>Search</span>
-        </div>
-        <div className={`tab-item ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
-          <i className="fas fa-chart-line" />
-          <span>Insights</span>
-        </div>
-        <div className={`tab-item ${activeTab === 'taste-tree' ? 'active' : ''}`} onClick={() => setActiveTab('taste-tree')}>
-          <i className="fas fa-network-wired" />
-          <span>Taste Tree</span>
-        </div>
-        <div style={{ flex: 1 }} className="desktop-flex-spacer"></div>
-        <div className="tab-item" onClick={() => setShowSettings(true)}>
-          <i className="fas fa-gear" />
-          <span>Config</span>
-        </div>
-      </div>
+      {/* Queue panel on the right side of App layout on desktop */}
+      {showQueue && !isMobile && <Queue />}
+
+      {/* Queue bottom sheet on mobile */}
+      {showQueue && isMobile && (
+        <Queue onClose={() => setShowQueue(false)} />
+      )}
 
       {showPlayer && <PlayerScreen onClose={() => setShowPlayer(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

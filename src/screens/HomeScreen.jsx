@@ -4,6 +4,7 @@ import { JioSaavnAPI } from '../services/JioSaavnAPI';
 import { loadTasteProfile, clearTasteProfile, getPersonalizedPlaylist } from '../services/TasteService';
 import SongCard from '../components/SongCard';
 import TasteWizard from '../components/TasteWizard';
+import { getDiscoverySongs, scoreSong } from '../services/discoveryEngine';
 
 export default function HomeScreen({ onNavigate }) {
   const { state, playSong } = useMusic();
@@ -15,6 +16,9 @@ export default function HomeScreen({ onNavigate }) {
   const [showWizard, setShowWizard] = useState(false);
   const [personalizedSongs, setPersonalizedSongs] = useState([]);
   const [isPersonalizing, setIsPersonalizing] = useState(false);
+  
+  const [discoveryTracks, setDiscoveryTracks] = useState([]);
+  const [loadingDiscovery, setLoadingDiscovery] = useState(true);
 
   // Load taste profile from localStorage
   useEffect(() => {
@@ -43,6 +47,16 @@ export default function HomeScreen({ onNavigate }) {
       })
       .catch(() => setIsPersonalizing(false));
   }, [tasteProfile]);
+
+  useEffect(() => {
+    getDiscoverySongs()
+      .then(songs => {
+        const sorted = songs.sort((a, b) => scoreSong(b) - scoreSong(a));
+        setDiscoveryTracks(sorted.slice(0, 20));
+      })
+      .catch(err => console.error('Discovery error:', err))
+      .finally(() => setLoadingDiscovery(false));
+  }, []);
 
   const recommendedSongs = trending.slice(0, 4);
   const recentSongs = trending.slice(4, 10);
@@ -175,6 +189,38 @@ export default function HomeScreen({ onNavigate }) {
 
       {/* Section Divider */}
       {tasteProfile && <div className="section-divider" />}
+
+      {/* ── Picked For You ─────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Picked For You</h2>
+        
+        {loadingDiscovery ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton-pulse-row" style={{
+                height: 64,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {discoveryTracks.map((song, index) => (
+              <SongCard
+                key={song.id}
+                song={song}
+                index={index + 1}
+                variant="row"
+                onPress={() => playSong(song, discoveryTracks)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="section-divider" />
 
       {/* ── Recommended for you ─────────────────────── */}
       <div style={{ marginBottom: 32 }}>

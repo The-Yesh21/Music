@@ -309,6 +309,12 @@ export const MusicProvider = ({ children }) => {
       state, 
       playSong,
       togglePlay, skipNext, skipPrev, seekTo, toggleFavorite, toggleDislike, toggleVocalClarity,
+      setVolume: (val) => AudioService.setVolume(val),
+      setQueue: (newQueue) => dispatch({ type: 'SET_QUEUE', queue: newQueue }),
+      clearQueue: () => {
+        const cur = stateRef.current.currentSong;
+        dispatch({ type: 'SET_QUEUE', queue: cur ? [cur] : [] });
+      },
       pauseSong: async () => { await AudioService.pause(); dispatch({ type: 'SET_PLAYING', value: false }); },
       resumeSong: async () => { await AudioService.play(); dispatch({ type: 'SET_PLAYING', value: true }); },
       stopSong: async () => { await AudioService.unload(); dispatch({ type: 'SET_PLAYING', value: false }); },

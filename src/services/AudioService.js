@@ -48,6 +48,10 @@ class AudioService {
     this.isClarityModeActive = true; 
     this._currentSoundstage = 'Mastering: 3D Spatial BGM';
 
+    this.currentTrack = null;
+    this.nextTrack = null;
+    this._mediaSessionRegistered = false;
+
     this._setupListeners();
   }
 
@@ -82,21 +86,75 @@ class AudioService {
   }
 
   _setupListeners() {
-    this.audio.addEventListener('timeupdate', () => this._emit());
+    this.audio.addEventListener('timeupdate', () => {
+      this._updateMediaSessionPosition();
+      this._emit();
+    });
     this.audio.addEventListener('ended', () => {
-      if (this.statusCallback) this.statusCallback({ didJustFinish: true, isPlaying: false });
+      if (this.nextTrack) {
+        const next = this.nextTrack;
+        this.nextTrack = null;
+        this.currentTrack = next;
+        
+        // Start next track synchronously in the 'ended' event callback
+        this.audio.src = next.uri;
+        this.audio.play().catch(e => {
+          console.warn('Sync transition play failed in ended listener:', e);
+        });
+
+        // Notify context that song finished and next has started
+        if (this.statusCallback) {
+          this.statusCallback({ 
+            didJustFinish: true, 
+            nextSongStarted: next 
+          });
+        }
+        this._updateMediaSession();
+      } else {
+        if (this.statusCallback) this.statusCallback({ didJustFinish: true, isPlaying: false });
+      }
     });
     this.audio.addEventListener('play', () => {
       audioEngine.init(this.audio);
       audioEngine.resume();
       this.analyser = audioEngine.analyser;
       this.audioContext = audioEngine.context;
-      if (this.isClarityModeActive) {
-        this._startVADLoop();
+
+      // Copy node references from audioEngine
+      if (!this.hpf && audioEngine.hpf) {
+        this.hpf = audioEngine.hpf;
+        this.subtractiveEq = audioEngine.subtractiveEq;
+        this.msSplitter = audioEngine.msSplitter;
+        this.midNode = audioEngine.midNode;
+        this.sideNode = audioEngine.sideNode;
+        this.midLowComp = audioEngine.midLowComp;
+        this.midVocalComp = audioEngine.midVocalComp;
+        this.midExciter = audioEngine.midExciter;
+        this.sidechainDucker = audioEngine.sidechainDucker;
+        this.sideHaasDelay = audioEngine.sideHaasDelay;
+        this.sideHaasGain = audioEngine.sideHaasGain;
+        this.reverbWet = audioEngine.reverbWet;
+        this.reverbDry = audioEngine.reverbDry;
+        this.combFilters = audioEngine.combFilters;
+        this.allpassFilters = audioEngine.allpassFilters;
+        this.softClipper = audioEngine.softClipper;
+        this.limiter = audioEngine.limiter;
+        this.lufsGain = audioEngine.lufsGain;
       }
+
+      if (this.isClarityModeActive) {
+        this.transitionTo3DImmersive();
+        this._startVADLoop();
+      } else {
+        this.setVocalClarityMode(false);
+      }
+      this._updateMediaSession();
       this._emit();
-    }, { once: true });
-    this.audio.addEventListener('pause', () => this._emit());
+    });
+    this.audio.addEventListener('pause', () => {
+      this._updateMediaSession();
+      this._emit();
+    });
     this.audio.addEventListener('waiting', () => {
       if (this.statusCallback) this.statusCallback({ isBuffering: true });
     });
@@ -293,8 +351,79 @@ class AudioService {
     audioEngine.setVolume(val);
   }
 
-  async loadAndPlay(uri) {
+  setNextTrack(song) {
+    this.nextTrack = song;
+  }
+
+  _setupMediaSessionHandlers() {
+    if (!('mediaSession' in navigator) || this._mediaSessionRegistered) return;
+    this._mediaSessionRegistered = true;
+
+    try {
+      navigator.mediaSession.setActionHandler('play', () => {
+        this.play().catch(console.error);
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        this.pause().catch(console.error);
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (this.statusCallback) this.statusCallback({ userRequestedPrev: true });
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (this.statusCallback) this.statusCallback({ userRequestedNext: true });
+      });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime !== undefined) {
+          this.seekTo(details.seekTime * 1000);
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to register mediaSession handlers:', e);
+    }
+  }
+
+  _updateMediaSession() {
+    if (!('mediaSession' in navigator) || !this.currentTrack) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: this.currentTrack.title,
+        artist: this.currentTrack.artist,
+        album: this.currentTrack.album || 'EchoTune AI',
+        artwork: [
+          { src: this.currentTrack.artwork || 'https://picsum.photos/seed/default/512/512', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+      
+      navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+      this._updateMediaSessionPosition();
+    } catch (e) {
+      console.warn('Failed to update mediaSession metadata:', e);
+    }
+  }
+
+  _updateMediaSessionPosition() {
+    if (!('mediaSession' in navigator) || !this.currentTrack || !('setPositionState' in navigator.mediaSession)) return;
+    try {
+      const duration = isNaN(this.audio.duration) || this.audio.duration === Infinity ? 0 : this.audio.duration;
+      const position = isNaN(this.audio.currentTime) ? 0 : this.audio.currentTime;
+      if (duration > 0 && position >= 0 && position <= duration) {
+        navigator.mediaSession.setPositionState({
+          duration: duration,
+          playbackRate: this.audio.playbackRate || 1.0,
+          position: position
+        });
+      }
+    } catch (e) {
+      // Ignore occasional validation errors
+    }
+  }
+
+  async loadAndPlay(uri, track = null) {
     if (this.statusCallback) this.statusCallback({ isBuffering: true, error: null });
+
+    this.currentTrack = track;
+    this.nextTrack = null;
 
     if (this.audioContext && this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
@@ -303,6 +432,9 @@ class AudioService {
     this.audio.crossOrigin = 'anonymous';
     this.audio.src = uri;
     this.audio.preload = 'auto';
+
+    this._setupMediaSessionHandlers();
+    this._updateMediaSession();
 
     // Wait until browser has enough data or an error occurs
     await new Promise((resolve) => {

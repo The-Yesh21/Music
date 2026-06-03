@@ -65,9 +65,75 @@ export const MusicProvider = ({ children }) => {
   useEffect(() => { stateRef.current = state; }, [state]);
 
   const skipNextRef = useRef();
+  const skipPrevRef = useRef();
   useEffect(() => {
     skipNextRef.current = skipNext;
+    skipPrevRef.current = skipPrev;
   });
+
+  const preResolveNextSong = async (currentSong, currentQueue) => {
+    if (!currentSong || !currentQueue || currentQueue.length === 0) return;
+    
+    const idx = currentQueue.findIndex((x) => x.id === currentSong.id);
+    let nextIdx = idx + 1;
+    while (nextIdx < currentQueue.length && stateRef.current.dislikes.has(currentQueue[nextIdx].id)) {
+      nextIdx++;
+    }
+    
+    if (nextIdx < currentQueue.length) {
+      let nextSong = { ...currentQueue[nextIdx] };
+      
+      // If the next song doesn't have a URI, resolve it now!
+      if (!nextSong.uri || String(nextSong.id).startsWith('taste_')) {
+        try {
+          const searchResults = await JioSaavnAPI.searchSongs(`${nextSong.title} ${nextSong.artist}`);
+          if (searchResults && searchResults.length > 0) {
+            const match = searchResults[0];
+            nextSong = {
+              ...match,
+              bpm: nextSong.bpm || match.bpm || 100,
+              mood: nextSong.mood || match.mood || 'Neutral',
+              rating: nextSong.rating || match.rating || 50
+            };
+            
+            // Update the queue in state so that it has the URI when we transition to it
+            const updatedQueue = currentQueue.map((q, i) => i === nextIdx ? nextSong : q);
+            dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
+          }
+        } catch (e) {
+          console.warn('Failed to pre-resolve stream for next song:', e);
+        }
+      }
+      
+      // Tell AudioService about the next track so it can play it synchronously when current ends
+      AudioService.setNextTrack(nextSong);
+    } else {
+      // If we are at the end of the queue, extend it in advance!
+      try {
+        const existingQueueIds = new Set(currentQueue.map(sq => sq.id));
+        const extensionSongs = await extendRadioQueue(currentSong, { 
+          existingQueueIds: existingQueueIds, 
+          dislikedIds: stateRef.current.dislikes 
+        });
+        
+        if (extensionSongs.length > 0) {
+          const newQueue = [...currentQueue, ...extensionSongs];
+          dispatch({ type: 'SET_QUEUE', queue: newQueue });
+          
+          let nextSong = { ...extensionSongs[0] };
+          if (!nextSong.uri) {
+            const searchResults = await JioSaavnAPI.searchSongs(`${nextSong.title} ${nextSong.artist}`);
+            if (searchResults && searchResults.length > 0) {
+              nextSong = { ...searchResults[0], ...nextSong };
+            }
+          }
+          AudioService.setNextTrack(nextSong);
+        }
+      } catch (e) {
+        console.error('Failed to pre-extend queue:', e);
+      }
+    }
+  };
 
   useEffect(() => {
     AudioService.setStatusCallback((status) => {
@@ -82,13 +148,64 @@ export const MusicProvider = ({ children }) => {
         dispatch({ type: 'SET_BUFFERING', value: status.isBuffering });
       }
 
+      if (status.userRequestedNext) {
+        if (skipNextRef.current) {
+          skipNextRef.current(false); // Manual skip
+        }
+        return;
+      }
+
+      if (status.userRequestedPrev) {
+        if (skipPrevRef.current) {
+          skipPrevRef.current();
+        }
+        return;
+      }
+
       if (status.didJustFinish) {
         // Natural end of song -> reset skips and add listen time
         dispatch({ type: 'RESET_SKIPS' });
         const newStats = addListeningTime(Math.floor(s.durationMillis / 1000), s.stats);
         dispatch({ type: 'SET_STATS', stats: newStats });
-        if (skipNextRef.current) {
-          skipNextRef.current(true); // pass true to indicate natural completion
+
+        if (status.nextSongStarted) {
+          // Sync transition completed successfully on mobile lock screen
+          const nextSong = status.nextSongStarted;
+          dispatch({ type: 'SET_SONG', song: nextSong });
+
+          let history = addToHistory(nextSong, s.history);
+          dispatch({ type: 'SET_HISTORY', history });
+
+          let playStats = incrementPlayCount(nextSong.id, newStats);
+          dispatch({ type: 'SET_STATS', stats: playStats });
+
+          updateMLModel(nextSong, 'PLAY');
+
+          // Build radio playlist and pre-resolve next track
+          (async () => {
+            try {
+              const existingQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
+              const dislikedIds = stateRef.current.dislikes;
+              const radioSongs = await buildRadioPlaylist(nextSong, { existingQueueIds, dislikedIds });
+              
+              let extendedQueue = stateRef.current.queue;
+              if (radioSongs.length > 0) {
+                const currentIds = new Set(extendedQueue.map(sq => sq.id));
+                const freshSongs = radioSongs.filter(sq => !currentIds.has(sq.id) && !stateRef.current.dislikes.has(sq.id));
+                if (freshSongs.length > 0) {
+                  extendedQueue = [...extendedQueue, ...freshSongs];
+                  dispatch({ type: 'SET_QUEUE', queue: extendedQueue });
+                }
+              }
+              await preResolveNextSong(nextSong, extendedQueue);
+            } catch (e) {
+              console.error('Radio playlist build failed after sync transition:', e);
+            }
+          })();
+        } else {
+          if (skipNextRef.current) {
+            skipNextRef.current(true); // pass true to indicate natural completion
+          }
         }
         return;
       }
@@ -133,19 +250,21 @@ export const MusicProvider = ({ children }) => {
         }
       }
 
+      let currentQueue = stateRef.current.queue;
       // If a queue is explicitly provided (e.g. from search/AI results), use it
       if (queueOpt && queueOpt.length > 1) {
-        const updatedQueue = queueOpt.map(q => q.id === song.id ? playableSong : q);
-        dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
+        currentQueue = queueOpt.map(q => q.id === song.id ? playableSong : q);
+        dispatch({ type: 'SET_QUEUE', queue: currentQueue });
       } 
       // If the song is already in the existing queue, preserve the queue (replacing the placeholder if needed)
       else if (stateRef.current.queue.some(q => q.id === song.id)) {
-        const updatedQueue = stateRef.current.queue.map(q => q.id === song.id ? playableSong : q);
-        dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
+        currentQueue = stateRef.current.queue.map(q => q.id === song.id ? playableSong : q);
+        dispatch({ type: 'SET_QUEUE', queue: currentQueue });
       } 
       // Otherwise, collapse the queue to this single song and let the radio build recommendations
       else {
-        dispatch({ type: 'SET_QUEUE', queue: [playableSong] });
+        currentQueue = [playableSong];
+        dispatch({ type: 'SET_QUEUE', queue: currentQueue });
       }
 
       const s = stateRef.current;
@@ -155,7 +274,7 @@ export const MusicProvider = ({ children }) => {
       dispatch({ type: 'SET_HISTORY', history });
       
       dispatch({ type: 'SET_SONG', song: playableSong });
-      await AudioService.loadAndPlay(playableSong.uri);
+      await AudioService.loadAndPlay(playableSong.uri, playableSong);
       
       // Update ML Decision Tree weights
       updateMLModel(playableSong, 'PLAY');
@@ -163,20 +282,23 @@ export const MusicProvider = ({ children }) => {
       // Build a 20+ song radio playlist in the background
       (async () => {
         try {
-          const existingQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
+          const existingQueueIds = new Set(currentQueue.map(sq => sq.id));
           const dislikedIds = stateRef.current.dislikes;
           
           const radioSongs = await buildRadioPlaylist(playableSong, { existingQueueIds, dislikedIds });
           
+          let extendedQueue = currentQueue;
           if (radioSongs.length > 0) {
-            const currentQueue = stateRef.current.queue;
             const currentIds = new Set(currentQueue.map(sq => sq.id));
             const freshSongs = radioSongs.filter(sq => !currentIds.has(sq.id) && !stateRef.current.dislikes.has(sq.id));
             
             if (freshSongs.length > 0) {
-              dispatch({ type: 'SET_QUEUE', queue: [...currentQueue, ...freshSongs] });
+              extendedQueue = [...currentQueue, ...freshSongs];
+              dispatch({ type: 'SET_QUEUE', queue: extendedQueue });
             }
           }
+          // Now pre-resolve next song on the extended queue!
+          await preResolveNextSong(playableSong, extendedQueue);
         } catch (e) {
           console.error('Radio playlist build failed:', e);
         }

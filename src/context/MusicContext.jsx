@@ -64,6 +64,11 @@ export const MusicProvider = ({ children }) => {
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
 
+  const skipNextRef = useRef();
+  useEffect(() => {
+    skipNextRef.current = skipNext;
+  });
+
   useEffect(() => {
     AudioService.setStatusCallback((status) => {
       const s = stateRef.current;
@@ -82,7 +87,9 @@ export const MusicProvider = ({ children }) => {
         dispatch({ type: 'RESET_SKIPS' });
         const newStats = addListeningTime(Math.floor(s.durationMillis / 1000), s.stats);
         dispatch({ type: 'SET_STATS', stats: newStats });
-        skipNext(true); // pass true to indicate natural completion
+        if (skipNextRef.current) {
+          skipNextRef.current(true); // pass true to indicate natural completion
+        }
         return;
       }
       if (status.positionMillis !== undefined) {

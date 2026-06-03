@@ -304,9 +304,22 @@ class AudioService {
     this.audio.src = uri;
     this.audio.preload = 'auto';
 
-    // Wait until browser has enough data
+    // Wait until browser has enough data or an error occurs
     await new Promise((resolve) => {
-      this.audio.addEventListener('canplaythrough', resolve, { once: true });
+      const cleanup = () => {
+        this.audio.removeEventListener('canplaythrough', onCanPlayThrough);
+        this.audio.removeEventListener('error', onError);
+      };
+      const onCanPlayThrough = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        resolve();
+      };
+      this.audio.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+      this.audio.addEventListener('error', onError, { once: true });
       this.audio.load();
     });
 

@@ -3,6 +3,23 @@ import { useMusic } from '../context/MusicContext';
 import { buildDecisionTree, computePredictionTree, getMLUserState, getMLTreeRecommendations } from '../services/MLTreeEngine';
 import SongCard from '../components/SongCard';
 
+const safePercent = (value, total) => {
+  if (!value || !total || isNaN(value) || isNaN(total) || total === 0) return 0;
+  const result = (value / total) * 100;
+  return isNaN(result) ? 0 : Math.round(result);
+};
+
+const safeNumber = (val, fallback = 0) => {
+  const n = Number(val);
+  return isNaN(n) || !isFinite(n) ? fallback : n;
+};
+
+const computeConfidence = (plays, skips) => {
+  const total = safeNumber(plays) + safeNumber(skips);
+  if (total === 0) return 85; // default confidence when no history yet
+  return Math.round((safeNumber(plays) / total) * 100);
+};
+
 export default function MLTasteTreeScreen() {
   const { playSong, state } = useMusic();
   const [tree, setTree] = useState(null);
@@ -169,13 +186,13 @@ export default function MLTasteTreeScreen() {
           <div style={{ marginTop: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
               <span>Match Confidence</span>
-              <span style={{ fontWeight: 700, color: node.confidence > 70 ? 'var(--accent-light)' : 'var(--text-secondary)' }}>
-                {node.confidence}%
+              <span style={{ fontWeight: 700, color: (isNaN(node.confidence) || !node.confidence ? 85 : node.confidence) > 70 ? 'var(--accent-light)' : 'var(--text-secondary)' }}>
+                {isNaN(node.confidence) || !node.confidence ? 85 : Math.round(node.confidence)}%
               </span>
             </div>
             <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
               <div style={{ 
-                width: `${node.confidence}%`, 
+                width: `${isNaN(node.confidence) || !node.confidence ? 85 : Math.round(node.confidence)}%`, 
                 height: '100%', 
                 background: isActive ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.2)',
                 borderRadius: '2px',

@@ -2050,8 +2050,50 @@ input[type="range"]:active::-webkit-slider-thumb {
   box-sizing: border-box;
 }
 
-.tree-node-card, .song-card-row, .song-card-grid {
-  min-width: 0 !important;
-  box-sizing: border-box !important;
+/* The grid container holding the node cards */
+.tree-grid,
+.decision-split-grid,
+.decision-tree-container [class*="grid"], 
+.decision-tree-container [class*="split"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0,1fr) is critical */
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0 12px;
+  box-sizing: border-box;
 }
 
+.tree-node-card,
+[class*="node-card"],
+[class*="treeCard"] {
+  min-width: 0;        /* prevents overflow in grid */
+  overflow: hidden;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+/* Truncate long text inside cards */
+.tree-node-card h3,
+.tree-node-card p,
+.tree-node-card span,
+.tree-node-card h4,
+.tree-node-card div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .tree-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 8px;
+    gap: 8px;
+  }
+  
+  .tree-node-card {
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+  }
+}

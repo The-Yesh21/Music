@@ -60,7 +60,7 @@ class AudioService {
   }
 
 
-  makeTubeSaturationCurve(gain = 1.5) {
+  makeTubeSaturationCurve(gain = 0.4) {
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
     for (let i = 0; i < n_samples; ++i) {
@@ -295,17 +295,17 @@ class AudioService {
     this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
     this.midNode.gain.linearRampToValueAtTime(0.55, time + duration);
 
-    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain UP to 1.15 to wrap music around L/R
+    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain UP to 0.9 to wrap music around L/R
     this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
-    this.sideNode.gain.linearRampToValueAtTime(1.15, time + duration);
+    this.sideNode.gain.linearRampToValueAtTime(0.9, time + duration);
 
-    // 5. Expand Haas: Ramps side Haas delay gain up to 0.85 for massive 3D width
+    // 5. Expand Haas: Ramps side Haas delay gain up to 0.45 for moderate width
     this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.85, time + duration); 
+    this.sideHaasGain.gain.linearRampToValueAtTime(0.45, time + duration); 
 
-    // 6. Immersive Room: Open Schroeder Reverb wet gain up to 22% mix for gorgeous glowing room depth
+    // 6. Immersive Room: Open Schroeder Reverb wet gain up to 8% mix for gorgeous glowing room depth
     this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.22, time + duration);
+    this.reverbWet.gain.linearRampToValueAtTime(0.08, time + duration);
 
     // 7. Relax Mid compression
     this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);

@@ -38,6 +38,13 @@ export default function App() {
     if (hasVisited) {
       setActiveTab('home');
     }
+    
+    // Request notification permission for background playback on Android
+    if (typeof Notification !== 'undefined' && Notification.requestPermission) {
+      Notification.requestPermission().catch(err => {
+        console.warn('Notification permission request failed:', err);
+      });
+    }
   }, []);
 
   const renderScreen = () => {

@@ -87,10 +87,71 @@ export const MusicProvider = ({ children }) => {
     }
 
     const idx = currentQueue.findIndex((x) => x.id === currentSong.id);
+    if (idx === -1) return;
+
+    // Identify songs to resolve (up to 7)
+    const songsToResolve = [];
+    if (stateRef.current.shuffle) {
+      // Resolve up to 7 random songs in the queue that don't have URIs
+      const unresolvedIdxs = [];
+      currentQueue.forEach((song, i) => {
+        if (i !== idx && (!song.uri || String(song.id).startsWith('taste_'))) {
+          unresolvedIdxs.push(i);
+        }
+      });
+      // Shuffle indices and pick up to 7
+      const chosenIdxs = unresolvedIdxs.sort(() => 0.5 - Math.random()).slice(0, 7);
+      chosenIdxs.forEach(index => {
+        songsToResolve.push({ index, song: currentQueue[index] });
+      });
+    } else {
+      // Resolve the next 7 songs in sequence
+      for (let i = 1; i <= 7; i++) {
+        const nextIdx = idx + i;
+        if (nextIdx < currentQueue.length) {
+          const song = currentQueue[nextIdx];
+          if (!song.uri || String(song.id).startsWith('taste_')) {
+            songsToResolve.push({ index: nextIdx, song });
+          }
+        }
+      }
+    }
+
+    if (songsToResolve.length > 0) {
+      try {
+        const updatedQueue = [...currentQueue];
+        let queueChanged = false;
+
+        await Promise.all(songsToResolve.map(async ({ index, song }) => {
+          try {
+            const searchResults = await JioSaavnAPI.searchSongs(`${song.title} ${song.artist}`);
+            if (searchResults && searchResults.length > 0) {
+              const match = searchResults[0];
+              updatedQueue[index] = {
+                ...match,
+                bpm: song.bpm || match.bpm || 100,
+                mood: song.mood || match.mood || 'Neutral',
+                rating: song.rating || match.rating || 50
+              };
+              queueChanged = true;
+            }
+          } catch (e) {
+            console.warn(`Failed to resolve queue song at index ${index}:`, e);
+          }
+        }));
+
+        if (queueChanged) {
+          dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
+          currentQueue = updatedQueue;
+        }
+      } catch (err) {
+        console.error('Error pre-resolving queue:', err);
+      }
+    }
+
+    // Set the immediate next track in AudioService
     let nextIdx;
-    
     if (stateRef.current.shuffle && currentQueue.length > 1) {
-      // Pick a random index that isn't the current one and isn't disliked
       let attempts = 0;
       do {
         nextIdx = Math.floor(Math.random() * currentQueue.length);
@@ -102,34 +163,9 @@ export const MusicProvider = ({ children }) => {
         nextIdx++;
       }
     }
-    
+
     if (nextIdx < currentQueue.length) {
-      let nextSong = { ...currentQueue[nextIdx] };
-      
-      // If the next song doesn't have a URI, resolve it now!
-      if (!nextSong.uri || String(nextSong.id).startsWith('taste_')) {
-        try {
-          const searchResults = await JioSaavnAPI.searchSongs(`${nextSong.title} ${nextSong.artist}`);
-          if (searchResults && searchResults.length > 0) {
-            const match = searchResults[0];
-            nextSong = {
-              ...match,
-              bpm: nextSong.bpm || match.bpm || 100,
-              mood: nextSong.mood || match.mood || 'Neutral',
-              rating: nextSong.rating || match.rating || 50
-            };
-            
-            // Update the queue in state so that it has the URI when we transition to it
-            const updatedQueue = currentQueue.map((q, i) => i === nextIdx ? nextSong : q);
-            dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
-          }
-        } catch (e) {
-          console.warn('Failed to pre-resolve stream for next song:', e);
-        }
-      }
-      
-      // Tell AudioService about the next track so it can play it synchronously when current ends
-      AudioService.setNextTrack(nextSong);
+      AudioService.setNextTrack(currentQueue[nextIdx]);
     } else {
       // If we are at the end of the queue, and repeat all is enabled, loop back to the start!
       if (stateRef.current.repeat === 'all' && currentQueue.length > 0) {

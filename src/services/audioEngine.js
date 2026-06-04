@@ -38,7 +38,7 @@ class AudioEngine {
     this.lufsGain = null;
   }
 
-  makeTubeSaturationCurve(gain = 1.3) {
+  makeTubeSaturationCurve(gain = 0.4) {
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
     for (let i = 0; i < n_samples; ++i) {
@@ -124,8 +124,8 @@ class AudioEngine {
     this.midVocalComp.release.value = 0.08;
 
     this.midExciter = this.context.createWaveShaper();
-    this.midExciter.curve = this.makeTubeSaturationCurve(1.3);
-    this.midExciter.oversample = '4x';
+    this.midExciter.curve = this.makeTubeSaturationCurve(0.4);
+    this.midExciter.oversample = '2x';
 
     this.midNode = this.context.createGain();
     this.midNode.gain.value = 0.55; // default immersive spatial gain
@@ -156,13 +156,13 @@ class AudioEngine {
     this.sidechainDucker.gain.value = 0.0; // flat initially
 
     this.sideHaasDelay = this.context.createDelay(0.1);
-    this.sideHaasDelay.delayTime.value = 0.018; // 18ms Haas widening delay
+    this.sideHaasDelay.delayTime.value = 0.008; // 8ms, barely perceptible widening
 
     this.sideHaasGain = this.context.createGain();
     this.sideHaasGain.gain.value = 0.85; // spatial default
 
     this.sideNode = this.context.createGain();
-    this.sideNode.gain.value = 1.15; // default side gain
+    this.sideNode.gain.value = 0.9; // default side gain
 
     sideSignal.connect(this.sidechainDucker);
 
@@ -174,7 +174,7 @@ class AudioEngine {
 
     // 6. Schroeder Reverb stage (Algorithmic Room Reverb)
     this.reverbWet = this.context.createGain();
-    this.reverbWet.gain.value = 0.22; // default immersive reverb mix
+    this.reverbWet.gain.value = 0.08; // subtle room feel, not a bathroom echo
 
     this.reverbDry = this.context.createGain();
     this.reverbDry.gain.value = 1.0;
@@ -259,7 +259,7 @@ class AudioEngine {
     this.limiter.release.value = 0.05;
 
     this.lufsGain = this.context.createGain();
-    this.lufsGain.gain.value = 1.15; // Boost perceived loudness
+    this.lufsGain.gain.value = 0.88; // pull back to avoid clipping into the limiter
 
     // 9. Analyser Stage
     this.analyser = this.context.createAnalyser();
@@ -300,8 +300,7 @@ class AudioEngine {
 
   setVolume(val) {
     if (this.lufsGain) {
-      // Scale LUFS gain node based on user volume slider
-      this.lufsGain.gain.value = val * 1.15;
+      this.lufsGain.gain.value = val * 0.88; // was 1.15, way too hot
     }
   }
 }

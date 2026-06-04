@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EchoTune</string>
+    <string name="title_activity_main">EchoTune</string>
+    <string name="package_name">com.echotune.app</string>
+    <string name="custom_url_scheme">com.echotune.app</string>
+</resources>

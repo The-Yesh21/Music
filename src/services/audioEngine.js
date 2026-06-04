@@ -64,7 +64,13 @@ class AudioEngine {
   }
 
   init(audioElement) {
-    if (this.context) return; // already initialized
+    if (this.context) {
+      this.resume();
+      return;
+    }
+
+    // Android WebView needs explicit user gesture — check if we're in Capacitor
+    const isCapacitor = window.Capacitor !== undefined;
     
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     this.context = new AudioContextClass();
@@ -265,6 +271,23 @@ class AudioEngine {
     this.limiter.connect(this.lufsGain);
     this.lufsGain.connect(this.analyser);
     this.analyser.connect(this.context.destination);
+
+    // Android: resume on touch
+    document.addEventListener('touchstart', () => this.resume(), { passive: true });
+    
+    // Capacitor-specific: app resume event
+    if (isCapacitor) {
+      document.addEventListener('resume', () => {
+        this.resume();
+        if (audioElement.paused && window.__echotune_was_playing) {
+          audioElement.play().catch(() => {});
+        }
+      });
+      
+      document.addEventListener('pause', () => {
+        window.__echotune_was_playing = !audioElement.paused;
+      });
+    }
 
     if (this.context.state === 'suspended') {
       this.context.resume();

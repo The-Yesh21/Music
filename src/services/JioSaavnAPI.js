@@ -1,5 +1,23 @@
 const API_BASE = 'https://jio-blue.vercel.app/api';
 
+// Check if running inside Capacitor (Android app)
+const isNative = () => window.Capacitor?.isNativePlatform?.() === true;
+
+export const getSongDetails = async (id) => {
+  const url = `https://saavn.dev/api/songs/${id}`;
+  
+  if (isNative()) {
+    // Use native HTTP — no CORS restrictions
+    const { CapacitorHttp } = await import('@capacitor/core');
+    const response = await CapacitorHttp.get({ url });
+    return response.data;
+  } else {
+    // Regular browser fetch
+    const res = await fetch(url);
+    return res.json();
+  }
+};
+
 const decodeEntity = (str) => {
   if (!str) return '';
   return str.replace(/&amp;/g, '&')
@@ -45,9 +63,17 @@ const mapSong = (s) => {
 export const JioSaavnAPI = {
   searchSongs: async (query) => {
     try {
-      const resp = await fetch(`${API_BASE}/search/songs?query=${encodeURIComponent(query)}`);
-      if (!resp.ok) throw new Error('Failed to fetch from proxy');
-      const json = await resp.json();
+      const url = `${API_BASE}/search/songs?query=${encodeURIComponent(query)}`;
+      let json;
+      if (isNative()) {
+        const { CapacitorHttp } = await import('@capacitor/core');
+        const response = await CapacitorHttp.get({ url });
+        json = response.data;
+      } else {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Failed to fetch from proxy');
+        json = await resp.json();
+      }
       if (!json.success || !json.data?.results) return [];
       
       return json.data.results.map(mapSong);
@@ -104,9 +130,17 @@ export const JioSaavnAPI = {
       return [];
     }
     try {
-      const resp = await fetch(`${API_BASE}/songs/${songId}/suggestions`);
-      if (!resp.ok) throw new Error('Failed to fetch suggestions');
-      const json = await resp.json();
+      const url = `${API_BASE}/songs/${songId}/suggestions`;
+      let json;
+      if (isNative()) {
+        const { CapacitorHttp } = await import('@capacitor/core');
+        const response = await CapacitorHttp.get({ url });
+        json = response.data;
+      } else {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Failed to fetch suggestions');
+        json = await resp.json();
+      }
       if (!json.success || !json.data) return [];
       
       // The suggestions endpoint returns an array of songs directly in `data`

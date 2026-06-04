@@ -59,6 +59,47 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 4. Open your browser and navigate to `http://localhost:5173/`.  
    *(To test on your mobile device, run `npm run dev -- --host` and visit the generated Network URL on your phone).*
 
+## 📱 Mobile App (Android APK via Capacitor)
+
+EchoTune is configured with **Capacitor** to wrap the React application inside a native Android WebView. It uses native HTTP bindings via `CapacitorHttp` to bypass CORS restrictions for JioSaavn APIs and configures proper background audio playback policies.
+
+### Prerequisites for Android builds
+* **Java Development Kit (JDK):** JDK 17 or higher (tested with JDK 24).
+* **Android SDK:** Android API Level 34+ (installed via Android Studio).
+* **Android Studio:** Recommended for running emulators and generating signed release APKs.
+
+### Commands & Scripts
+We've added dedicated scripts to simplify the Android workflow:
+
+* **Build & Sync:**
+  ```bash
+  npm run build:android
+  ```
+  Compiles the web production assets (`dist/`) and pushes them to the native Android platform folder.
+
+* **Open in Android Studio:**
+  ```bash
+  npm run open:android
+  ```
+  Opens the `android` project workspace directly in Android Studio.
+
+* **Synchronize Plugins:**
+  ```bash
+  npm run sync
+  ```
+  Synchronizes Capacitor plugins and configuration changes.
+
+### Compiling the APK via Command Line
+To build the debug APK directly from your terminal:
+```bash
+cd android
+.\gradlew assembleDebug
+```
+*(Make sure your `JAVA_HOME` env variable points to your JDK directory, e.g. `C:\Program Files\Java\jdk-24`)*
+
+The generated `.apk` file will be located at:
+`android/app/build/outputs/apk/debug/app-debug.apk`
+
 ## 🌍 Deployment
 
 Deploying EchoTune is incredibly straightforward. We recommend using **Vercel** for a zero-configuration deployment:

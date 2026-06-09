@@ -7,8 +7,8 @@ android {
         applicationId "com.echotune.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -27,6 +27,7 @@ android {
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+		dirs '../../node_modules/@capacitor/background-runner/android/src/main/libs', 'libs'
     }
 }
 
@@ -52,3 +53,16 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+
+rootProject.subprojects { subProj ->
+    subProj.tasks.matching { it.class.name.contains('JavaCompile') }.configureEach { task ->
+        task.sourceCompatibility = "21"
+        task.targetCompatibility = "21"
+    }
+    subProj.tasks.matching { it.class.name.contains('KotlinCompile') }.configureEach { task ->
+        task.kotlinOptions {
+            jvmTarget = "21"
+        }
+    }
+}
+

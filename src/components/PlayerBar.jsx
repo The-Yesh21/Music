@@ -1,10 +1,12 @@
 import React from 'react';
 import { useMusic } from '../context/MusicContext';
 import { Shuffle, Repeat } from 'lucide-react';
+import { usePlayerStore } from '../playerStore';
 
 export default function PlayerBar({ onToggleQueue, showQueue, onPress }) {
-  const { state, togglePlay, skipNext, skipPrev, seekTo, setVolume, toggleFavorite, toggleShuffle, setRepeat } = useMusic();
-  const { currentSong, isPlaying, isBuffering, positionMillis, durationMillis, favorites, shuffle, repeat } = state;
+  const { state, togglePlay, skipNext, skipPrev, seekTo, setVolume, toggleFavorite } = useMusic();
+  const { currentSong, isPlaying, isBuffering, positionMillis, durationMillis, favorites } = state;
+  const { shuffle, toggleShuffle, repeat, setRepeat } = usePlayerStore();
 
   if (!currentSong) return null;
 
@@ -55,22 +57,7 @@ export default function PlayerBar({ onToggleQueue, showQueue, onPress }) {
         <div className="player-bar-center">
           <div className="player-controls-row">
             {/* Shuffle button — left of prev */}
-            <button
-              onClick={toggleShuffle}
-              title="Shuffle"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: shuffle ? '#ff6b35' : '#7a7a9a',  // accent when active
-                fontSize: '18px',
-                padding: '8px',
-                transition: 'color 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <button onClick={toggleShuffle} style={{ color: shuffle ? '#ff6b35' : '#7a7a9a', background: 'none', border: 'none', cursor: 'pointer' }}>
               <Shuffle size={18} />
             </button>
 
@@ -91,35 +78,9 @@ export default function PlayerBar({ onToggleQueue, showQueue, onPress }) {
             </button>
 
             {/* Repeat button — right of next */}
-            <button
-              onClick={setRepeat}
-              title="Repeat"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: repeat !== 'none' ? '#ff6b35' : '#7a7a9a',
-                fontSize: '18px',
-                padding: '8px',
-                position: 'relative',
-                transition: 'color 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <button onClick={setRepeat} style={{ color: repeat !== 'none' ? '#ff6b35' : '#7a7a9a', background: 'none', border: 'none', cursor: 'pointer' }}>
               <Repeat size={18} />
-              {/* Show "1" badge when repeat one is active */}
-              {repeat === 'one' && (
-                <span style={{
-                  position: 'absolute',
-                  top: '2px',
-                  right: '2px',
-                  fontSize: '9px',
-                  color: '#ff6b35',
-                  fontWeight: 700,
-                }}>1</span>
-              )}
+              {repeat === 'one' && <span style={{ fontSize: 9, color: '#ff6b35' }}>1</span>}
             </button>
           </div>
         </div>

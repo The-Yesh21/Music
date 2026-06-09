@@ -23,6 +23,14 @@ const config: CapacitorConfig = {
   plugins: {
     CapacitorHttp: {
       enabled: true  // use native HTTP instead of browser fetch — bypasses CORS
+    },
+    BackgroundRunner: {
+      label: 'com.echotune.background',
+      src: 'background.js',
+      event: 'keepAlive',
+      repeat: true,
+      interval: 30,
+      autoStart: true
     }
   }
 };

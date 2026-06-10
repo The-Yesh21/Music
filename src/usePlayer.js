@@ -2,12 +2,47 @@ import { useEffect, useRef } from 'react';
 import { usePlayerStore } from './playerStore';
 import { getSongDetails } from './services/JioSaavnAPI';
 import { audioEngine } from './services/audioEngine';
+import { registerPlugin } from '@capacitor/core';
+
+const MediaPlugin = registerPlugin('MediaPlugin');
+const isNative = () => !!window.Capacitor?.isNativePlatform?.();
+
+// Call this every time song changes or play/pause state changes
+const updateNativeNotification = (song, playing) => {
+  if (!isNative()) return;
+  MediaPlugin.updateNotification({
+    title: song?.name || song?.title || 'EchoTune',
+    artist: song?.artists?.primary?.[0]?.name || song?.artist || '',
+    isPlaying: playing,
+  }).catch(() => {});
+};
 
 export default function usePlayer(audioRef) {
   const { currentSong, playNext } = usePlayerStore();
   
   const playNextRef = useRef(null);
-  useEffect(() => { playNextRef.current = playNext; });  // no deps — always fresh
+  useEffect(() => { playNextRef.current = playNext; });
+
+  // Listen for notification button presses (next/prev/play/pause)
+  useEffect(() => {
+    if (!isNative()) return;
+    const listener = MediaPlugin.addListener('mediaAction', ({ action }) => {
+      const store = usePlayerStore.getState();
+      if (action === 'ACTION_NEXT')  store.playNext();
+      if (action === 'ACTION_PREV')  store.playPrev();
+      if (action === 'ACTION_PLAY')  {
+        audioRef.current?.play().catch(() => {});
+        store.setIsPlaying(true);
+      }
+      if (action === 'ACTION_PAUSE') {
+        audioRef.current?.pause();
+        store.setIsPlaying(false);
+      }
+    });
+    return () => {
+      listener.then(l => l.remove());
+    };
+  }, [audioRef]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -41,7 +76,9 @@ export default function usePlayer(audioRef) {
         audioEngine.init(audio);
         audioEngine.resume();
         audio.play().then(() => {
-          // STEP B — In usePlayer.js, after audio.play() succeeds, register Media Session:
+          // In your song change useEffect, after audio.play() succeeds:
+          updateNativeNotification(currentSong, true);
+          
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: currentSong.name || currentSong.title || 'Unknown',
@@ -73,9 +110,11 @@ export default function usePlayer(audioRef) {
     if (!audio) return;
     const handlePlay = () => {
       if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+      updateNativeNotification(currentSong, true);
     };
     const handlePause = () => {
       if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      updateNativeNotification(currentSong, false);
     };
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
@@ -83,5 +122,5 @@ export default function usePlayer(audioRef) {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
-  }, [audioRef]);
+  }, [audioRef, currentSong]);
 }

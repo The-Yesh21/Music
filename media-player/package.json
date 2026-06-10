@@ -1,0 +1,6 @@
+{
+  "name": "@capacitor-community/media-player",
+  "version": "1.0.0",
+  "description": "Mock package to satisfy dependency requirements",
+  "main": "index.js"
+}

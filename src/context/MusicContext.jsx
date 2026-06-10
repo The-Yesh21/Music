@@ -77,6 +77,8 @@ export const MusicProvider = ({ children }) => {
     skipPrevRef.current = skipPrev;
   });
 
+  const resolvingSongsRef = useRef(new Set());
+
   const preResolveNextSong = async (currentSong, currentQueue) => {
     if (!currentSong || !currentQueue || currentQueue.length === 0) return;
     
@@ -95,7 +97,8 @@ export const MusicProvider = ({ children }) => {
       // Resolve up to 7 random songs in the queue that don't have URIs
       const unresolvedIdxs = [];
       currentQueue.forEach((song, i) => {
-        if (i !== idx && (!song.uri || String(song.id).startsWith('taste_'))) {
+        const isTaste = String(song.id).startsWith('taste_');
+        if (i !== idx && (!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
           unresolvedIdxs.push(i);
         }
       });
@@ -110,7 +113,8 @@ export const MusicProvider = ({ children }) => {
         const nextIdx = idx + i;
         if (nextIdx < currentQueue.length) {
           const song = currentQueue[nextIdx];
-          if (!song.uri || String(song.id).startsWith('taste_')) {
+          const isTaste = String(song.id).startsWith('taste_');
+          if ((!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
             songsToResolve.push({ index: nextIdx, song });
           }
         }
@@ -118,6 +122,7 @@ export const MusicProvider = ({ children }) => {
     }
 
     if (songsToResolve.length > 0) {
+      songsToResolve.forEach(({ song }) => resolvingSongsRef.current.add(song.id));
       try {
         const updatedQueue = [...currentQueue];
         let queueChanged = false;
@@ -133,10 +138,22 @@ export const MusicProvider = ({ children }) => {
                 mood: song.mood || match.mood || 'Neutral',
                 rating: song.rating || match.rating || 50
               };
-              queueChanged = true;
+            } else {
+              updatedQueue[index] = {
+                ...song,
+                id: String(song.id).replace('taste_', 'failed_taste_')
+              };
             }
+            queueChanged = true;
           } catch (e) {
             console.warn(`Failed to resolve queue song at index ${index}:`, e);
+            updatedQueue[index] = {
+              ...song,
+              id: String(song.id).replace('taste_', 'failed_taste_')
+            };
+            queueChanged = true;
+          } finally {
+            resolvingSongsRef.current.delete(song.id);
           }
         }));
 
@@ -146,6 +163,7 @@ export const MusicProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Error pre-resolving queue:', err);
+        songsToResolve.forEach(({ song }) => resolvingSongsRef.current.delete(song.id));
       }
     }
 
@@ -333,9 +351,18 @@ export const MusicProvider = ({ children }) => {
               mood: song.mood || match.mood || 'Neutral',
               rating: song.rating || match.rating || 50
             };
+          } else {
+            playableSong = {
+              ...song,
+              id: String(song.id).replace('taste_', 'failed_taste_')
+            };
           }
         } catch (e) {
           console.warn('Failed to dynamically resolve JioSaavn stream:', e);
+          playableSong = {
+            ...song,
+            id: String(song.id).replace('taste_', 'failed_taste_')
+          };
         }
       }
 

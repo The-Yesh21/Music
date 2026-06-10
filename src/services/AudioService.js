@@ -1,4 +1,8 @@
+import { registerPlugin } from '@capacitor/core';
 import { audioEngine } from './audioEngine';
+
+const MediaPlugin = registerPlugin('MediaPlugin');
+const isNative = () => !!window.Capacitor?.isNativePlatform?.();
 
 class AudioService {
   constructor() {
@@ -86,6 +90,22 @@ class AudioService {
   }
 
   _setupListeners() {
+    if (isNative()) {
+      MediaPlugin.addListener('mediaAction', ({ action }) => {
+        if (action === 'ACTION_NEXT') {
+          if (this.statusCallback) this.statusCallback({ userRequestedNext: true });
+        } else if (action === 'ACTION_PREV') {
+          if (this.statusCallback) this.statusCallback({ userRequestedPrev: true });
+        } else if (action === 'ACTION_PLAY') {
+          this.play().catch(console.error);
+        } else if (action === 'ACTION_PAUSE') {
+          this.pause().catch(console.error);
+        } else if (action === 'ACTION_STOP') {
+          this.unload().catch(console.error);
+        }
+      });
+    }
+
     this.audio.addEventListener('timeupdate', () => {
       this._updateMediaSessionPosition();
       this._emit();
@@ -382,7 +402,17 @@ class AudioService {
     }
   }
 
+  _updateNativeNotification() {
+    if (!isNative() || !this.currentTrack) return;
+    MediaPlugin.updateNotification({
+      title: this.currentTrack.title || 'EchoTune',
+      artist: this.currentTrack.artist || '',
+      isPlaying: !this.audio.paused,
+    }).catch((e) => console.warn('Failed to update native notification:', e));
+  }
+
   _updateMediaSession() {
+    this._updateNativeNotification();
     if (!('mediaSession' in navigator) || !this.currentTrack) return;
 
     try {
@@ -483,6 +513,9 @@ class AudioService {
     if (this._vadIntervalId) clearInterval(this._vadIntervalId);
     this.audio.pause();
     this.audio.src = '';
+    if (isNative()) {
+      MediaPlugin.stopNotification().catch((e) => console.warn('Failed to stop native notification:', e));
+    }
   }
 }
 

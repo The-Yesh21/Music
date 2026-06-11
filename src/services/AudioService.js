@@ -181,10 +181,7 @@ class AudioService {
     this.audio.addEventListener('playing', () => {
       if (this.statusCallback) this.statusCallback({ isBuffering: false, isPlaying: true });
     });
-    this.audio.addEventListener('stalled', () => {
-      this.audio.load();
-      this.audio.play().catch(console.error);
-    });
+
     this.audio.addEventListener('error', (e) => {
       if (this.statusCallback) this.statusCallback({ error: 'Failed to load audio stream.' });
     });

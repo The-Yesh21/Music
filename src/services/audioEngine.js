@@ -226,15 +226,13 @@ class AudioEngine {
     this.msMergerLeft = this.context.createGain();
     this.msMergerRight = this.context.createGain();
 
-    // Left channel = M + S + ReverbDry + ReverbWet
+    // Left channel = M + S + ReverbWet
     this.midNode.connect(this.msMergerLeft);
     this.sideNode.connect(this.msMergerLeft);
-    this.reverbDry.connect(this.msMergerLeft);
     this.reverbWet.connect(this.msMergerLeft);
 
-    // Right channel = M - S + ReverbDry + ReverbWet
+    // Right channel = M - S + ReverbWet
     this.midNode.connect(this.msMergerRight);
-    this.reverbDry.connect(this.msMergerRight);
     this.reverbWet.connect(this.msMergerRight);
 
     const sideInvert = this.context.createGain();

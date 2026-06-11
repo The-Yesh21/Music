@@ -91,7 +91,7 @@ class AudioService {
 
   _setupListeners() {
     if (isNative()) {
-      MediaPlugin.addListener('mediaAction', ({ action }) => {
+      MediaPlugin.addListener('mediaAction', ({ action, position }) => {
         if (action === 'ACTION_NEXT') {
           if (this.statusCallback) this.statusCallback({ userRequestedNext: true });
         } else if (action === 'ACTION_PREV') {
@@ -102,6 +102,10 @@ class AudioService {
           this.pause().catch(console.error);
         } else if (action === 'ACTION_STOP') {
           this.unload().catch(console.error);
+        } else if (action === 'ACTION_SEEK_TO') {
+          if (position !== undefined) {
+            this.seekTo(position).catch(console.error);
+          }
         }
       });
     }
@@ -401,10 +405,16 @@ class AudioService {
 
   _updateNativeNotification() {
     if (!isNative() || !this.currentTrack) return;
+    
+    const duration = isNaN(this.audio.duration) || this.audio.duration === Infinity ? 0 : Math.floor(this.audio.duration * 1000);
+    const position = isNaN(this.audio.currentTime) ? 0 : Math.floor(this.audio.currentTime * 1000);
+
     MediaPlugin.updateNotification({
       title: this.currentTrack.title || 'EchoTune',
       artist: this.currentTrack.artist || '',
       isPlaying: !this.audio.paused,
+      position: position,
+      duration: duration
     }).catch((e) => console.warn('Failed to update native notification:', e));
   }
 

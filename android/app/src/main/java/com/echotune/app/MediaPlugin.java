@@ -21,11 +21,15 @@ public class MediaPlugin extends Plugin {
         String title    = call.getString("title", "EchoTune");
         String artist   = call.getString("artist", "");
         Boolean playing = call.getBoolean("isPlaying", false);
+        Long position   = call.getLong("position", 0L);
+        Long duration   = call.getLong("duration", 0L);
 
         Intent i = new Intent(getContext(), MediaPlaybackService.class);
         i.putExtra(MediaPlaybackService.EXTRA_TITLE,      title);
         i.putExtra(MediaPlaybackService.EXTRA_ARTIST,     artist);
         i.putExtra(MediaPlaybackService.EXTRA_IS_PLAYING, playing);
+        i.putExtra(MediaPlaybackService.EXTRA_POSITION,   position);
+        i.putExtra(MediaPlaybackService.EXTRA_DURATION,   duration);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(i);
@@ -51,6 +55,9 @@ public class MediaPlugin extends Plugin {
                 String action = intent.getStringExtra("action");
                 JSObject data = new JSObject();
                 data.put("action", action);
+                if (intent.hasExtra("position")) {
+                    data.put("position", intent.getLongExtra("position", 0L));
+                }
                 notifyListeners("mediaAction", data);
             }
         };

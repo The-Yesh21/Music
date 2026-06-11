@@ -35,11 +35,15 @@ public class MediaPlaybackService extends Service {
     public static final String EXTRA_TITLE  = "title";
     public static final String EXTRA_ARTIST = "artist";
     public static final String EXTRA_IS_PLAYING = "isPlaying";
+    public static final String EXTRA_POSITION = "position";
+    public static final String EXTRA_DURATION = "duration";
 
     private MediaSessionCompat mediaSession;
     private String currentTitle  = "EchoTune";
     private String currentArtist = "";
     private boolean isPlaying    = false;
+    private long currentPosition = 0;
+    private long currentDuration = 0;
 
     private PowerManager.WakeLock wakeLock;
     private WifiManager.WifiLock wifiLock;
@@ -55,6 +59,36 @@ public class MediaPlaybackService extends Service {
         createNotificationChannel();
         mediaSession = new MediaSessionCompat(this, "EchoTuneSession");
         mediaSession.setActive(true);
+
+        mediaSession.setCallback(new MediaSessionCompat.Callback() {
+            @Override
+            public void onPlay() {
+                sendBroadcastAction(ACTION_PLAY);
+            }
+
+            @Override
+            public void onPause() {
+                sendBroadcastAction(ACTION_PAUSE);
+            }
+
+            @Override
+            public void onSkipToNext() {
+                sendBroadcastAction(ACTION_NEXT);
+            }
+
+            @Override
+            public void onSkipToPrevious() {
+                sendBroadcastAction(ACTION_PREV);
+            }
+
+            @Override
+            public void onSeekTo(long pos) {
+                Intent broadcast = new Intent("ECHOTUNE_MEDIA_ACTION");
+                broadcast.putExtra("action", "ACTION_SEEK_TO");
+                broadcast.putExtra("position", pos);
+                sendBroadcast(broadcast);
+            }
+        });
 
         try {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -90,6 +124,10 @@ public class MediaPlaybackService extends Service {
             currentArtist = intent.getStringExtra(EXTRA_ARTIST);
         if (intent.hasExtra(EXTRA_IS_PLAYING))
             isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, false);
+        if (intent.hasExtra(EXTRA_POSITION))
+            currentPosition = intent.getLongExtra(EXTRA_POSITION, 0L);
+        if (intent.hasExtra(EXTRA_DURATION))
+            currentDuration = intent.getLongExtra(EXTRA_DURATION, 0L);
 
         // Handle button actions — broadcast back to WebView
         if (action != null) {
@@ -106,6 +144,7 @@ public class MediaPlaybackService extends Service {
             if (ACTION_PAUSE.equals(action)) isPlaying = false;
         }
 
+        updatePlaybackState();
         startForeground(NOTIFICATION_ID, buildNotification());
         return START_STICKY;
     }
@@ -127,6 +166,7 @@ public class MediaPlaybackService extends Service {
         mediaSession.setMetadata(new MediaMetadataCompat.Builder()
             .putString(MediaMetadataCompat.METADATA_KEY_TITLE,  currentTitle)
             .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
+            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, currentDuration)
             .build());
 
         return new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -201,5 +241,28 @@ public class MediaPlaybackService extends Service {
         }
 
         super.onDestroy();
+    }
+
+    private void updatePlaybackState() {
+        long actions = PlaybackStateCompat.ACTION_PLAY |
+                       PlaybackStateCompat.ACTION_PAUSE |
+                       PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
+                       PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+                       PlaybackStateCompat.ACTION_PLAY_PAUSE |
+                       PlaybackStateCompat.ACTION_SEEK_TO;
+
+        int state = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
+
+        PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
+            .setActions(actions)
+            .setState(state, currentPosition, isPlaying ? 1.0f : 0f);
+
+        mediaSession.setPlaybackState(stateBuilder.build());
+    }
+
+    private void sendBroadcastAction(String action) {
+        Intent broadcast = new Intent("ECHOTUNE_MEDIA_ACTION");
+        broadcast.putExtra("action", action);
+        sendBroadcast(broadcast);
     }
 }

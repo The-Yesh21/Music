@@ -97,7 +97,7 @@ export const MusicProvider = ({ children }) => {
       // Resolve up to 7 random songs in the queue that don't have URIs
       const unresolvedIdxs = [];
       currentQueue.forEach((song, i) => {
-        const isTaste = String(song.id).startsWith('taste_');
+        const isTaste = String(song.id).startsWith('taste_') || String(song.id).startsWith('python_');
         if (i !== idx && (!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
           unresolvedIdxs.push(i);
         }
@@ -113,7 +113,7 @@ export const MusicProvider = ({ children }) => {
         const nextIdx = idx + i;
         if (nextIdx < currentQueue.length) {
           const song = currentQueue[nextIdx];
-          const isTaste = String(song.id).startsWith('taste_');
+          const isTaste = String(song.id).startsWith('taste_') || String(song.id).startsWith('python_');
           if ((!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
             songsToResolve.push({ index: nextIdx, song });
           }
@@ -141,7 +141,7 @@ export const MusicProvider = ({ children }) => {
             } else {
               updatedQueue[index] = {
                 ...song,
-                id: String(song.id).replace('taste_', 'failed_taste_')
+                id: String(song.id).replace('taste_', 'failed_taste_').replace('python_', 'failed_python_')
               };
             }
             queueChanged = true;
@@ -149,7 +149,7 @@ export const MusicProvider = ({ children }) => {
             console.warn(`Failed to resolve queue song at index ${index}:`, e);
             updatedQueue[index] = {
               ...song,
-              id: String(song.id).replace('taste_', 'failed_taste_')
+              id: String(song.id).replace('taste_', 'failed_taste_').replace('python_', 'failed_python_')
             };
             queueChanged = true;
           } finally {
@@ -193,7 +193,7 @@ export const MusicProvider = ({ children }) => {
         }
         if (firstIdx < currentQueue.length) {
           let firstSong = { ...currentQueue[firstIdx] };
-          if (!firstSong.uri || String(firstSong.id).startsWith('taste_')) {
+          if (!firstSong.uri || String(firstSong.id).startsWith('taste_') || String(firstSong.id).startsWith('python_')) {
             try {
               const searchResults = await JioSaavnAPI.searchSongs(`${firstSong.title} ${firstSong.artist}`);
               if (searchResults && searchResults.length > 0) {
@@ -210,10 +210,11 @@ export const MusicProvider = ({ children }) => {
 
       // If we are at the end of the queue, extend it in advance!
       try {
-        const existingQueueIds = new Set(currentQueue.map(sq => sq.id));
         const extensionSongs = await extendRadioQueue(currentSong, { 
-          existingQueueIds: existingQueueIds, 
-          dislikedIds: stateRef.current.dislikes 
+          existingQueue: currentQueue, 
+          dislikedIds: stateRef.current.dislikes,
+          favorites: stateRef.current.favorites,
+          history: stateRef.current.history
         });
         
         if (extensionSongs.length > 0) {
@@ -291,9 +292,11 @@ export const MusicProvider = ({ children }) => {
           // Build radio playlist and pre-resolve next track
           (async () => {
             try {
-              const existingQueueIds = new Set(stateRef.current.queue.map(sq => sq.id));
+              const existingQueue = stateRef.current.queue;
               const dislikedIds = stateRef.current.dislikes;
-              const radioSongs = await buildRadioPlaylist(nextSong, { existingQueueIds, dislikedIds });
+              const favorites = stateRef.current.favorites;
+              const history = stateRef.current.history;
+              const radioSongs = await buildRadioPlaylist(nextSong, { existingQueue, dislikedIds, favorites, history });
               
               let extendedQueue = stateRef.current.queue;
               if (radioSongs.length > 0) {
@@ -337,9 +340,9 @@ export const MusicProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_BUFFERING', value: true });
 
-      // Resolve streaming URL dynamically if song is a local taste song or lacks a valid URL
+      // Resolve streaming URL dynamically if song is a local taste/python song or lacks a valid URL
       let playableSong = { ...song };
-      if (!song.uri || String(song.id).startsWith('taste_')) {
+      if (!song.uri || String(song.id).startsWith('taste_') || String(song.id).startsWith('python_')) {
         try {
           const searchResults = await JioSaavnAPI.searchSongs(`${song.title} ${song.artist}`);
           if (searchResults && searchResults.length > 0) {
@@ -354,14 +357,14 @@ export const MusicProvider = ({ children }) => {
           } else {
             playableSong = {
               ...song,
-              id: String(song.id).replace('taste_', 'failed_taste_')
+              id: String(song.id).replace('taste_', 'failed_taste_').replace('python_', 'failed_python_')
             };
           }
         } catch (e) {
           console.warn('Failed to dynamically resolve JioSaavn stream:', e);
           playableSong = {
             ...song,
-            id: String(song.id).replace('taste_', 'failed_taste_')
+            id: String(song.id).replace('taste_', 'failed_taste_').replace('python_', 'failed_python_')
           };
         }
       }
@@ -398,10 +401,12 @@ export const MusicProvider = ({ children }) => {
       // Build a 20+ song radio playlist in the background
       (async () => {
         try {
-          const existingQueueIds = new Set(currentQueue.map(sq => sq.id));
+          const existingQueue = currentQueue;
           const dislikedIds = stateRef.current.dislikes;
+          const favorites = stateRef.current.favorites;
+          const history = stateRef.current.history;
           
-          const radioSongs = await buildRadioPlaylist(playableSong, { existingQueueIds, dislikedIds });
+          const radioSongs = await buildRadioPlaylist(playableSong, { existingQueue, dislikedIds, favorites, history });
           
           let extendedQueue = currentQueue;
           if (radioSongs.length > 0) {
@@ -493,8 +498,12 @@ export const MusicProvider = ({ children }) => {
     
     // Infinite Radio Engine: extend the queue with more genre-matched songs
     try {
-      const existingQueueIds = new Set(updatedState.queue.map(sq => sq.id));
-      const extensionSongs = await extendRadioQueue(updatedState.currentSong, { existingQueueIds: existingQueueIds, dislikedIds: updatedState.dislikes });
+      const extensionSongs = await extendRadioQueue(updatedState.currentSong, { 
+        existingQueue: updatedState.queue, 
+        dislikedIds: updatedState.dislikes,
+        favorites: updatedState.favorites,
+        history: updatedState.history
+      });
       
       if (extensionSongs.length > 0) {
         const newQueue = [...updatedState.queue, ...extensionSongs];

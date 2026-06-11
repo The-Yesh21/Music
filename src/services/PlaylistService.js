@@ -10,6 +10,7 @@ import { getSpotifyRecommendations } from './SpotifyBridge';
 import { getHuggingFaceRecommendations } from './HuggingFaceBridge';
 import { loadGroqKey } from './StorageService';
 import { processAIQuery } from './AIChatService';
+import { getPythonServerUrl } from './MLTreeEngine';
 
 const MIN_QUEUE_SIZE = 20;
 
@@ -50,6 +51,14 @@ const detectGenre = (song) => {
   return null;
 };
 
+// Helper to construct a normalized lookup key for deduplication
+const getSongKey = (song) => {
+  if (!song) return '';
+  const title = (song.title || song.Title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const artist = (song.artist || song.Artist || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `${title}_${artist}`;
+};
+
 // Resolve text queries ("Song - Artist") into JioSaavn song objects in parallel
 const resolveQueriesToSongs = async (queries, maxPerQuery = 1) => {
   const fetchPromises = queries.slice(0, 25).map(async (query) => {
@@ -62,28 +71,79 @@ const resolveQueriesToSongs = async (queries, maxPerQuery = 1) => {
   return batches.flat();
 };
 
-// Deduplicate songs by id, excluding already-queued and disliked songs
-const deduplicate = (songs, existingIds, dislikedIds) => {
-  const seen = new Set(existingIds);
+// Deduplicate songs by id and normalized key, excluding already-queued and disliked songs
+const deduplicate = (songs, existingIds, existingKeys, dislikedIds) => {
   return songs.filter(s => {
-    if (seen.has(s.id) || dislikedIds.has(s.id)) return false;
-    seen.add(s.id);
+    if (!s) return false;
+    if (existingIds.has(s.id) || dislikedIds.has(s.id)) return false;
+    const key = getSongKey(s);
+    if (existingKeys.has(key)) return false;
+    
+    existingIds.add(s.id);
+    existingKeys.add(key);
     return true;
   });
 };
 
 // ─── Main Radio Builder ──────────────────────────────────────────────────────
 
-export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(), dislikedIds = new Set() } = {}) => {
+export const buildRadioPlaylist = async (seedSong, { existingQueue = [], dislikedIds = new Set(), favorites = new Set(), history = [] } = {}) => {
   const results = [];
-  const existingIds = new Set(existingQueueIds);
+  const existingIds = new Set(existingQueue.map(s => s.id));
+  const existingKeys = new Set(existingQueue.map(s => getSongKey(s)));
+
+  // Exclude the seed song itself from recommendations
+  existingIds.add(seedSong.id);
+  existingKeys.add(getSongKey(seedSong));
+
+  // Strategy 0: Local Python ML Recommendation Server (Content-Based Filtering on Top100 xlsx/csv)
+  try {
+    const pyUrl = getPythonServerUrl();
+    
+    // Map favorite IDs to title-artist pairs using the queue and history to find details
+    const favsPayload = Array.from(favorites).map(id => {
+      const match = [...existingQueue, ...history].find(s => s.id === id);
+      return match ? { title: match.title, artist: match.artist } : null;
+    }).filter(Boolean);
+
+    const histPayload = history.map(h => ({ title: h.title, artist: h.artist }));
+
+    const pyResponse = await fetch(`${pyUrl}/api/recommend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        seed_title: seedSong.title || '',
+        seed_artist: seedSong.artist || '',
+        favorites: favsPayload,
+        dislikes: [], 
+        history: histPayload,
+        limit: 15
+      }),
+      signal: AbortSignal.timeout(1500) // fast timeout
+    });
+
+    if (pyResponse.ok) {
+      const pyRecs = await pyResponse.json();
+      if (Array.isArray(pyRecs) && pyRecs.length > 0) {
+        console.log(`Radio: Fetched ${pyRecs.length} high-fidelity recommendations from local Python ML backend.`);
+        
+        // Map Python recommended songs to playable JioSaavn search items in parallel (fast)
+        const pyQueries = pyRecs.map(r => `${r.title} ${r.artist}`);
+        const pyResolvedSongs = await resolveQueriesToSongs(pyQueries, 1);
+        
+        const freshPySongs = deduplicate(pyResolvedSongs, existingIds, existingKeys, dislikedIds);
+        results.push(...freshPySongs);
+      }
+    }
+  } catch (e) {
+    console.warn('Radio: Python recommendation server offline, skipping Python ML channel.');
+  }
 
   // Strategy 1: JioSaavn native suggestions (always available, fast)
   try {
     const suggestions = await JioSaavnAPI.getSuggestions(seedSong.id);
-    const fresh = deduplicate(suggestions, existingIds, dislikedIds);
+    const fresh = deduplicate(suggestions, existingIds, existingKeys, dislikedIds);
     results.push(...fresh);
-    fresh.forEach(s => existingIds.add(s.id));
   } catch (e) {
     console.warn('Radio: JioSaavn suggestions failed:', e);
   }
@@ -94,15 +154,17 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
     const genreSearches = GENRE_QUERIES[genre].map(async (query) => {
       try {
         const songs = await JioSaavnAPI.searchSongs(query);
-        return deduplicate(songs, existingIds, dislikedIds);
+        return deduplicate(songs, existingIds, existingKeys, dislikedIds);
       } catch { return []; }
     });
 
     const genreBatches = await Promise.all(genreSearches);
     genreBatches.flat().forEach(s => {
-      if (!existingIds.has(s.id) && !dislikedIds.has(s.id)) {
+      const key = getSongKey(s);
+      if (!existingIds.has(s.id) && !existingKeys.has(key) && !dislikedIds.has(s.id)) {
         results.push(s);
         existingIds.add(s.id);
+        existingKeys.add(key);
       }
     });
   }
@@ -113,7 +175,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
       const queries = await getSimilarTracksFromLastFm(seedSong.title, seedSong.artist);
       if (queries.length > 0) {
         const songs = await resolveQueriesToSongs(queries, 1);
-        return deduplicate(songs, existingIds, dislikedIds);
+        return deduplicate(songs, existingIds, existingKeys, dislikedIds);
       }
     } catch (e) {
       console.warn('Radio: Last.fm failed:', e);
@@ -129,7 +191,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
         const queries = await getDeepSeekRecommendations(seedSong.title, seedSong.artist);
         if (queries.length > 0) {
           const songs = await resolveQueriesToSongs(queries, 1);
-          return deduplicate(songs, existingIds, dislikedIds);
+          return deduplicate(songs, existingIds, existingKeys, dislikedIds);
         }
       } catch {}
       return [];
@@ -141,7 +203,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
         const queries = await getGeminiRecommendations(seedSong.title, seedSong.artist);
         if (queries.length > 0) {
           const songs = await resolveQueriesToSongs(queries, 1);
-          return deduplicate(songs, existingIds, dislikedIds);
+          return deduplicate(songs, existingIds, existingKeys, dislikedIds);
         }
       } catch {}
       return [];
@@ -153,7 +215,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
         const queries = await getSpotifyRecommendations(seedSong.title, seedSong.artist);
         if (queries.length > 0) {
           const songs = await resolveQueriesToSongs(queries, 1);
-          return deduplicate(songs, existingIds, dislikedIds);
+          return deduplicate(songs, existingIds, existingKeys, dislikedIds);
         }
       } catch {}
       return [];
@@ -167,7 +229,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
         const queries = await processAIQuery(`Recommend songs similar to "${seedSong.title}" by ${seedSong.artist}, same genre and vibe`);
         if (queries.length > 0) {
           const songs = await resolveQueriesToSongs(queries, 1);
-          return deduplicate(songs, existingIds, dislikedIds);
+          return deduplicate(songs, existingIds, existingKeys, dislikedIds);
         }
       } catch {}
       return [];
@@ -179,7 +241,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
         const queries = await getHuggingFaceRecommendations(seedSong.title, seedSong.artist);
         if (queries.length > 0) {
           const songs = await resolveQueriesToSongs(queries, 1);
-          return deduplicate(songs, existingIds, dislikedIds);
+          return deduplicate(songs, existingIds, existingKeys, dislikedIds);
         }
       } catch {}
       return [];
@@ -191,17 +253,21 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
 
   // Merge Last.fm results
   lastFmSongs.forEach(s => {
-    if (!existingIds.has(s.id) && !dislikedIds.has(s.id)) {
+    const key = getSongKey(s);
+    if (!existingIds.has(s.id) && !existingKeys.has(key) && !dislikedIds.has(s.id)) {
       results.push(s);
       existingIds.add(s.id);
+      existingKeys.add(key);
     }
   });
 
   // Merge AI results
   aiBatches.flat().forEach(s => {
-    if (!existingIds.has(s.id) && !dislikedIds.has(s.id)) {
+    const key = getSongKey(s);
+    if (!existingIds.has(s.id) && !existingKeys.has(key) && !dislikedIds.has(s.id)) {
       results.push(s);
       existingIds.add(s.id);
+      existingKeys.add(key);
     }
   });
 
@@ -218,15 +284,17 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
     const fallbackSearches = fallbackQueries.map(async (query) => {
       try {
         const songs = await JioSaavnAPI.searchSongs(query);
-        return deduplicate(songs, existingIds, dislikedIds);
+        return deduplicate(songs, existingIds, existingKeys, dislikedIds);
       } catch { return []; }
     });
 
     const fallbackBatches = await Promise.all(fallbackSearches);
     fallbackBatches.flat().forEach(s => {
-      if (!existingIds.has(s.id) && !dislikedIds.has(s.id)) {
+      const key = getSongKey(s);
+      if (!existingIds.has(s.id) && !existingKeys.has(key) && !dislikedIds.has(s.id)) {
         results.push(s);
         existingIds.add(s.id);
+        existingKeys.add(key);
       }
     });
   }
@@ -235,11 +303,12 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
   if (results.length < MIN_QUEUE_SIZE) {
     try {
       const trending = await JioSaavnAPI.getTrending();
-      const fresh = deduplicate(trending, existingIds, dislikedIds);
+      const fresh = deduplicate(trending, existingIds, existingKeys, dislikedIds);
       fresh.forEach(s => {
         if (results.length < MIN_QUEUE_SIZE) {
           results.push(s);
           existingIds.add(s.id);
+          existingKeys.add(getSongKey(s));
         }
       });
     } catch {}
@@ -259,9 +328,9 @@ export const buildRadioPlaylist = async (seedSong, { existingQueueIds = new Set(
 // ─── Quick Queue Extension ──────────────────────────────────────────────────
 // When the queue runs low during playback, extend it with more songs
 
-export const extendRadioQueue = async (currentSong, { existingQueueIds = new Set(), dislikedIds = new Set() } = {}) => {
+export const extendRadioQueue = async (currentSong, { existingQueue = [], dislikedIds = new Set(), favorites = new Set(), history = [] } = {}) => {
   try {
-    const newSongs = await buildRadioPlaylist(currentSong, { existingQueueIds, dislikedIds });
+    const newSongs = await buildRadioPlaylist(currentSong, { existingQueue, dislikedIds, favorites, history });
     return newSongs.slice(0, 10); // Add 10 more at a time
   } catch (e) {
     console.error('Radio extension failed:', e);

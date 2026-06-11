@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMusic } from '../context/MusicContext';
-import { buildDecisionTree, computePredictionTree, getMLUserState, getMLTreeRecommendations } from '../services/MLTreeEngine';
+import { buildDecisionTree, computePredictionTree, getMLUserState, getMLTreeRecommendationsAsync } from '../services/MLTreeEngine';
 import SongCard from '../components/SongCard';
 
 const safePercent = (value, total) => {
@@ -34,8 +34,13 @@ export default function MLTasteTreeScreen() {
     const computed = computePredictionTree(rawTree);
     setTree(computed);
     setUserState(getMLUserState());
-    setPredictions(getMLTreeRecommendations(10));
-  }, [state.history, state.favorites, state.dislikes]);
+    
+    let active = true;
+    getMLTreeRecommendationsAsync(10, state.currentSong).then(recs => {
+      if (active) setPredictions(recs);
+    });
+    return () => { active = false; };
+  }, [state.history, state.favorites, state.dislikes, state.currentSong]);
 
   // Compute active predicted path down the tree
   useEffect(() => {

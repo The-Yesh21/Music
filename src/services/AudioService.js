@@ -168,7 +168,7 @@ class AudioService {
 
       if (this.isClarityModeActive) {
         this.transitionTo3DImmersive();
-        this._startVADLoop();
+        // VAD loop disabled to prevent volume pumping
       } else {
         this.setVocalClarityMode(false);
       }
@@ -274,21 +274,21 @@ class AudioService {
     this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
     this.sidechainDucker.gain.linearRampToValueAtTime(-3.8, time + duration); 
 
-    // 3. MAIN STAGE VOCAL BOOST: Slide Mid (vocals center) gain UP to 1.30 (+2.5dB dual-channel presence boost!)
+    // 3. MAIN STAGE VOCAL BOOST: Slide Mid (vocals center) gain UP to 0.70 (headroom adjusted)
     this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
-    this.midNode.gain.linearRampToValueAtTime(1.30, time + duration);
+    this.midNode.gain.linearRampToValueAtTime(0.70, time + duration);
 
-    // 4. BGM DUCKING: Slide Side (stereo background music) gain DOWN to 0.28 to push backing tracks back
+    // 4. BGM DUCKING: Slide Side (stereo background music) gain DOWN to 0.25 (headroom adjusted)
     this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
-    this.sideNode.gain.linearRampToValueAtTime(0.28, time + duration);
+    this.sideNode.gain.linearRampToValueAtTime(0.25, time + duration);
 
-    // 5. Narrow Stereo: Collapse side Haas delay gain to 0.05 to lock vocals dead center
+    // 5. Narrow Stereo: Collapse side Haas delay gain to 0.0 to keep vocals clean
     this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.05, time + duration); 
+    this.sideHaasGain.gain.linearRampToValueAtTime(0.0, time + duration); 
 
-    // 6. Intimate Reverb: Pull room wet reflections down to 3% mix for dry vocal crispness
+    // 6. Intimate Reverb: Pull room wet reflections down to 2% mix for dry vocal crispness
     this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.03, time + duration);
+    this.reverbWet.gain.linearRampToValueAtTime(0.02, time + duration);
 
     // 7. Tight Vocal compression
     this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
@@ -312,21 +312,21 @@ class AudioService {
     this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
     this.sidechainDucker.gain.linearRampToValueAtTime(0.0, time + duration); 
 
-    // 3. Balanced Mid: Pull Mid gain down to 0.55 to open a spacious center pocket for BGM
+    // 3. Balanced Mid: Pull Mid gain to 0.55 for solid vocal/center presence (headroom adjusted)
     this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
     this.midNode.gain.linearRampToValueAtTime(0.55, time + duration);
 
-    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain UP to 0.9 to wrap music around L/R
+    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain to 0.45 (headroom adjusted)
     this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
-    this.sideNode.gain.linearRampToValueAtTime(0.9, time + duration);
+    this.sideNode.gain.linearRampToValueAtTime(0.45, time + duration);
 
-    // 5. Expand Haas: Ramps side Haas delay gain up to 0.45 for moderate width
+    // 5. Haas path set to 0.0 (clean stereo image without delay comb filtering)
     this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.45, time + duration); 
+    this.sideHaasGain.gain.linearRampToValueAtTime(0.0, time + duration); 
 
-    // 6. Immersive Room: Open Schroeder Reverb wet gain up to 8% mix for gorgeous glowing room depth
+    // 6. Immersive Room: Open Schroeder Reverb wet gain to 0.03 mix (room depth)
     this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.08, time + duration);
+    this.reverbWet.gain.linearRampToValueAtTime(0.03, time + duration);
 
     // 7. Relax Mid compression
     this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
@@ -348,8 +348,8 @@ class AudioService {
       this.subtractiveEq.gain.setValueAtTime(0, time);
       this.sidechainDucker.gain.setValueAtTime(0, time);
       
-      this.midNode.gain.setValueAtTime(1.0, time);
-      this.sideNode.gain.setValueAtTime(1.0, time);
+      this.midNode.gain.setValueAtTime(0.5, time); // Balanced dry level
+      this.sideNode.gain.setValueAtTime(0.5, time); // Balanced dry level
 
       this.sideHaasGain.gain.setValueAtTime(0, time); // Bypass stereo widening
       this.reverbWet.gain.setValueAtTime(0, time); // Bypass reverb room

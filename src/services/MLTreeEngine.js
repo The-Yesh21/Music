@@ -6,6 +6,17 @@
 
 import tasteSongsRaw from '../constants/taste_songs.json';
 
+// Helper to determine the local Python ML server URL depending on environment
+export const getPythonServerUrl = () => {
+  const isAndroid = window.Capacitor?.getPlatform() === 'android' || 
+                    (window.location && window.location.href && window.location.href.indexOf('android-asset') !== -1) ||
+                    /android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    return 'http://10.0.2.2:5000';
+  }
+  return 'http://localhost:5000';
+};
+
 // Ensure the dataset is valid and fallback values are handled
 const tasteSongs = tasteSongsRaw.map((song, index) => ({
   id: song.id || `taste_${index}`,
@@ -18,6 +29,12 @@ const tasteSongs = tasteSongsRaw.map((song, index) => ({
   artwork: song.artwork || `https://picsum.photos/seed/tastesong${index}/400/400`,
   uri: song.uri || `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(index % 12) + 1}.mp3`
 }));
+
+// Keep track of encountered song details (id -> {title, artist}) to map IDs back to titles/artists for Python backend
+const encounteredSongs = new Map();
+tasteSongs.forEach(song => {
+  encounteredSongs.set(song.id, { title: song.title, artist: song.artist });
+});
 
 // User listening state for the ML algorithm
 const userState = {
@@ -222,6 +239,11 @@ export const computePredictionTree = (node) => {
 export const updateMLModel = (song, actionType) => {
   if (!song) return;
 
+  // Track the song details in our registry so we can map its ID to title/artist for Python recommendation backend
+  if (song.id) {
+    encounteredSongs.set(song.id, { title: song.title || song.Title, artist: song.artist || song.Artist });
+  }
+
   const alpha = 0.25; // Learning rate for exponential moving average
   
   if (actionType === 'PLAY') {
@@ -328,3 +350,66 @@ export const getMLUserState = () => ({
   favoriteIds: Array.from(userState.favoriteIds),
   dislikeIds: Array.from(userState.dislikeIds)
 });
+
+// Retrieve predictions asynchronously: tries the Python ML server first, falls back to local decision tree.
+export const getMLTreeRecommendationsAsync = async (limit = 15, seedSong = null) => {
+  const pyUrl = getPythonServerUrl();
+  try {
+    const favorites = Array.from(userState.favoriteIds).map(id => {
+      const details = encounteredSongs.get(id);
+      return details ? { title: details.title, artist: details.artist } : null;
+    }).filter(Boolean);
+
+    const dislikes = Array.from(userState.dislikeIds).map(id => {
+      const details = encounteredSongs.get(id);
+      return details ? { title: details.title, artist: details.artist } : null;
+    }).filter(Boolean);
+
+    // Call Python ML server
+    const response = await fetch(`${pyUrl}/api/recommend`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        seed_title: seedSong?.title || '',
+        seed_artist: seedSong?.artist || '',
+        favorites,
+        dislikes,
+        history: [], 
+        limit
+      }),
+      signal: AbortSignal.timeout(1500) // 1.5s timeout for fast failover
+    });
+
+    if (response.ok) {
+      const pyRecs = await response.json();
+      if (Array.isArray(pyRecs) && pyRecs.length > 0) {
+        console.log(`Successfully fetched ${pyRecs.length} ML recommendations from Python backend.`);
+        return pyRecs.map((pySong, index) => {
+          // Attempt to find a local match in tasteSongs to get local URI or metadata
+          const localMatch = tasteSongs.find(s => 
+            s.title.toLowerCase() === pySong.title.toLowerCase() &&
+            s.artist.toLowerCase() === pySong.artist.toLowerCase()
+          );
+          return {
+            id: pySong.id || `python_${index}`,
+            title: pySong.title,
+            artist: pySong.artist,
+            genre: pySong.genre,
+            mood: pySong.mood,
+            bpm: pySong.bpm,
+            rating: pySong.rating,
+            artwork: pySong.artwork || `https://picsum.photos/seed/pythonsong${index}/400/400`,
+            uri: localMatch?.uri || pySong.uri || `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(index % 12) + 1}.mp3`
+          };
+        });
+      }
+    }
+  } catch (error) {
+    console.warn('Python ML recommendations offline, falling back to local Decision Tree model.', error);
+  }
+
+  // Fallback to local sync engine
+  return getMLTreeRecommendations(limit);
+};

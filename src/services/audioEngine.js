@@ -128,7 +128,7 @@ class AudioEngine {
     this.midExciter.oversample = '2x';
 
     this.midNode = this.context.createGain();
-    this.midNode.gain.value = 0.55; // default immersive spatial gain
+    this.midNode.gain.value = 0.55; // default immersive spatial gain (headroom adjusted)
 
     midSignal.connect(this.midLowComp);
     this.midLowComp.connect(this.midVocalComp);
@@ -156,21 +156,23 @@ class AudioEngine {
     this.sidechainDucker.gain.value = 0.0; // flat initially
 
     this.sideHaasDelay = this.context.createDelay(0.1);
-    this.sideHaasDelay.delayTime.value = 0.006; // 8ms, barely perceptible widening
+    this.sideHaasDelay.delayTime.value = 0.006; // 6ms delay
 
     this.sideHaasGain = this.context.createGain();
-    this.sideHaasGain.gain.value = 0.85; // spatial default
+    this.sideHaasGain.gain.value = 0.0; // set to 0 to bypass by default
 
     this.sideNode = this.context.createGain();
-    this.sideNode.gain.value = 0.85; // default side gain
+    this.sideNode.gain.value = 0.45; // default side gain (headroom adjusted)
 
     sideSignal.connect(this.sidechainDucker);
 
-    // Wide stereo / Haas widening parallel routing
+    // Wide stereo parallel routing:
+    // Connect sidechainDucker directly to sideNode for clean stereo image.
     this.sidechainDucker.connect(this.sideNode);
+    // Instantiate/connect Haas path to prevent object reference errors, 
+    // but DO NOT connect sideHaasGain to sideNode to avoid phase cancellations.
     this.sidechainDucker.connect(this.sideHaasDelay);
     this.sideHaasDelay.connect(this.sideHaasGain);
-    this.sideHaasGain.connect(this.sideNode);
 
     // 6. Schroeder Reverb stage (Algorithmic Room Reverb)
     this.reverbWet = this.context.createGain();
@@ -184,7 +186,7 @@ class AudioEngine {
 
     // Schroeder Comb Filters (Parallel feedback delay lines)
     const combDelays = [0.0297, 0.0371, 0.0411, 0.0437];
-    const combFeedback = 0.72;
+    const combFeedback = 0.52; // Reduced feedback to prevent ringing
     this.combFilters = combDelays.map(delayTime => {
       const delay = this.context.createDelay(1.0);
       delay.delayTime.value = delayTime;

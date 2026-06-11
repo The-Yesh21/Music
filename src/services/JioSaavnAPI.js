@@ -126,7 +126,7 @@ export const JioSaavnAPI = {
   },
 
   getSuggestions: async (songId) => {
-    if (!songId || String(songId).startsWith('taste_')) {
+    if (!songId || String(songId).startsWith('taste_') || String(songId).startsWith('python_')) {
       return [];
     }
     try {

@@ -1694,6 +1694,30 @@ input[type="range"]:active::-webkit-slider-thumb {
   margin-left: 8px;
 }
 
+.queue-item-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 11px;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.queue-item:hover .queue-item-remove-btn {
+  opacity: 0.6;
+}
+
+.queue-item:hover .queue-item-remove-btn:hover {
+  opacity: 1;
+  color: #ff4d4d;
+  transform: scale(1.15);
+}
+
 @media (max-width: 768px) {
   .queue-panel.mobile-sheet {
     position: fixed !important;

@@ -29,6 +29,12 @@ export default function Queue({ onClose }) {
     setDraggedIndex(null);
   };
 
+  const handleRemoveSong = (e, index) => {
+    e.stopPropagation();
+    const newQueue = queue.filter((_, i) => i !== index);
+    setQueue(newQueue);
+  };
+
   return (
     <div className={`queue-panel ${onClose ? 'mobile-sheet' : ''}`}>
       <div className="queue-header">
@@ -77,6 +83,15 @@ export default function Queue({ onClose }) {
                 <span className="queue-item-duration">
                   {formatDuration(song.duration)}
                 </span>
+                {!isCurrent && (
+                  <button 
+                    className="queue-item-remove-btn"
+                    onClick={(e) => handleRemoveSong(e, index)}
+                    title="Remove from queue"
+                  >
+                    <i className="fas fa-trash" />
+                  </button>
+                )}
               </div>
             );
           })

@@ -17,6 +17,8 @@ class AudioService {
     // --- 1. PRE-MASTERING STAGE ---
     this.hpf = null;
     this.subtractiveEq = null;
+    this.lowShelf = null;
+    this.highShelf = null;
 
     // --- 2. MID-SIDE (M/S) PROCESSOR NODES ---
     this.msSplitter = null;
@@ -148,6 +150,8 @@ class AudioService {
       if (!this.hpf && audioEngine.hpf) {
         this.hpf = audioEngine.hpf;
         this.subtractiveEq = audioEngine.subtractiveEq;
+        this.lowShelf = audioEngine.lowShelf;
+        this.highShelf = audioEngine.highShelf;
         this.msSplitter = audioEngine.msSplitter;
         this.midNode = audioEngine.midNode;
         this.sideNode = audioEngine.sideNode;
@@ -260,102 +264,78 @@ class AudioService {
   }
 
   transitionToVocalFocus() {
-    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp || !this.midNode || !this.sideNode) return;
+    if (!this.audioContext || !this.hpf || !this.subtractiveEq) return;
     const time = this.audioContext.currentTime;
     const duration = 0.45; 
     
     this._currentSoundstage = 'Spotify Vocals Focus';
 
-    // 1. Less Bass: Lift HPF low-cut to 100Hz to remove sub-bass masking
+    // 1. Less Bass: Lift HPF low-cut to 90Hz to remove sub-bass masking
     this.hpf.frequency.setValueAtTime(this.hpf.frequency.value, time);
-    this.hpf.frequency.linearRampToValueAtTime(100, time + duration);
-    
-    // 2. Vocal Sidechain Ducking: Carve a -3.5dB pocket in Side Path cymbals/synths
-    this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
-    this.sidechainDucker.gain.linearRampToValueAtTime(-3.8, time + duration); 
+    this.hpf.frequency.linearRampToValueAtTime(90, time + duration);
 
-    // 3. MAIN STAGE VOCAL BOOST: Slide Mid (vocals center) gain UP to 0.70 (headroom adjusted)
-    this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
-    this.midNode.gain.linearRampToValueAtTime(0.70, time + duration);
+    // 2. Reduce Low Shelf (bass cut):
+    if (this.lowShelf) {
+      this.lowShelf.gain.setValueAtTime(this.lowShelf.gain.value, time);
+      this.lowShelf.gain.linearRampToValueAtTime(-1.5, time + duration);
+    }
 
-    // 4. BGM DUCKING: Slide Side (stereo background music) gain DOWN to 0.25 (headroom adjusted)
-    this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
-    this.sideNode.gain.linearRampToValueAtTime(0.25, time + duration);
+    // 3. Boost Peaking EQ (vocal presence at 2.5kHz):
+    this.subtractiveEq.gain.setValueAtTime(this.subtractiveEq.gain.value, time);
+    this.subtractiveEq.gain.linearRampToValueAtTime(3.0, time + duration);
 
-    // 5. Narrow Stereo: Collapse side Haas delay gain to 0.0 to keep vocals clean
-    this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.0, time + duration); 
-
-    // 6. Intimate Reverb: Pull room wet reflections down to 2% mix for dry vocal crispness
-    this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.02, time + duration);
-
-    // 7. Tight Vocal compression
-    this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
-    this.midVocalComp.threshold.linearRampToValueAtTime(-19, time + duration);
+    // 4. Boost High Shelf (clarity at 10kHz):
+    if (this.highShelf) {
+      this.highShelf.gain.setValueAtTime(this.highShelf.gain.value, time);
+      this.highShelf.gain.linearRampToValueAtTime(2.0, time + duration);
+    }
 
     this._emit();
   }
 
   transitionTo3DImmersive() {
-    if (!this.audioContext || !this.hpf || !this.sidechainDucker || !this.sideHaasGain || !this.reverbWet || !this.midVocalComp || !this.midNode || !this.sideNode) return;
+    if (!this.audioContext || !this.hpf || !this.subtractiveEq) return;
     const time = this.audioContext.currentTime;
     const duration = 0.65; 
     
     this._currentSoundstage = 'Spotify 3D Spatial Space';
 
-    // 1. Warm Deep Bass: Pull HPF low-cut down to 32Hz
+    // 1. Warm Deep Bass: Pull HPF low-cut down to 30Hz
     this.hpf.frequency.setValueAtTime(this.hpf.frequency.value, time);
-    this.hpf.frequency.linearRampToValueAtTime(32, time + duration);
-    
-    // 2. Restore Sidechain: Flatten the side ducking completely
-    this.sidechainDucker.gain.setValueAtTime(this.sidechainDucker.gain.value, time);
-    this.sidechainDucker.gain.linearRampToValueAtTime(0.0, time + duration); 
+    this.hpf.frequency.linearRampToValueAtTime(30, time + duration);
 
-    // 3. Balanced Mid: Pull Mid gain to 0.55 for solid vocal/center presence (headroom adjusted)
-    this.midNode.gain.setValueAtTime(this.midNode.gain.value, time);
-    this.midNode.gain.linearRampToValueAtTime(0.55, time + duration);
+    // 2. Boost Low Shelf (bass punch):
+    if (this.lowShelf) {
+      this.lowShelf.gain.setValueAtTime(this.lowShelf.gain.value, time);
+      this.lowShelf.gain.linearRampToValueAtTime(3.5, time + duration);
+    }
 
-    // 4. DUAL-CHANNEL BGM BOOST: Slide Side (stereo background music) gain to 0.45 (headroom adjusted)
-    this.sideNode.gain.setValueAtTime(this.sideNode.gain.value, time);
-    this.sideNode.gain.linearRampToValueAtTime(0.45, time + duration);
+    // 3. Peaking EQ slight scoop (-1.0dB):
+    this.subtractiveEq.gain.setValueAtTime(this.subtractiveEq.gain.value, time);
+    this.subtractiveEq.gain.linearRampToValueAtTime(-1.0, time + duration);
 
-    // 5. Haas path set to 0.0 (clean stereo image without delay comb filtering)
-    this.sideHaasGain.gain.setValueAtTime(this.sideHaasGain.gain.value, time);
-    this.sideHaasGain.gain.linearRampToValueAtTime(0.0, time + duration); 
-
-    // 6. Immersive Room: Open Schroeder Reverb wet gain to 0.03 mix (room depth)
-    this.reverbWet.gain.setValueAtTime(this.reverbWet.gain.value, time);
-    this.reverbWet.gain.linearRampToValueAtTime(0.03, time + duration);
-
-    // 7. Relax Mid compression
-    this.midVocalComp.threshold.setValueAtTime(this.midVocalComp.threshold.value, time);
-    this.midVocalComp.threshold.linearRampToValueAtTime(-10, time + duration);
+    // 4. Boost High Shelf (air/sparkle):
+    if (this.highShelf) {
+      this.highShelf.gain.setValueAtTime(this.highShelf.gain.value, time);
+      this.highShelf.gain.linearRampToValueAtTime(2.5, time + duration);
+    }
 
     this._emit();
   }
 
   setVocalClarityMode(active) {
     this.isClarityModeActive = active;
-    if (!this.audioContext || !this.hpf || !this.subtractiveEq || !this.sidechainDucker || !this.sideHaasGain || !this.midLowComp || !this.midVocalComp || !this.reverbWet || !this.midNode || !this.sideNode) return;
+    if (!this.audioContext || !this.hpf || !this.subtractiveEq) return;
 
     const time = this.audioContext.currentTime;
     if (active) {
       this.transitionTo3DImmersive();
     } else {
-      // Complete Mastering Bypass (Full flat bypass, disables reverb & sidechain widening)
+      // Complete Mastering Bypass (Full flat bypass)
       this.hpf.frequency.setValueAtTime(20, time);
       this.subtractiveEq.gain.setValueAtTime(0, time);
-      this.sidechainDucker.gain.setValueAtTime(0, time);
-      
-      this.midNode.gain.setValueAtTime(0.5, time); // Balanced dry level
-      this.sideNode.gain.setValueAtTime(0.5, time); // Balanced dry level
-
-      this.sideHaasGain.gain.setValueAtTime(0, time); // Bypass stereo widening
-      this.reverbWet.gain.setValueAtTime(0, time); // Bypass reverb room
-      
-      this.midLowComp.threshold.setValueAtTime(0, time);
-      this.midVocalComp.threshold.setValueAtTime(0, time);
+      if (this.lowShelf) this.lowShelf.gain.setValueAtTime(0, time);
+      if (this.highShelf) this.highShelf.gain.setValueAtTime(0, time);
 
       this._currentSoundstage = 'Stereo Mastering Bypass';
     }

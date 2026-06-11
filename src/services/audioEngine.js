@@ -76,177 +76,59 @@ class AudioEngine {
     this.context = new AudioContextClass();
     this.source = this.context.createMediaElementSource(audioElement);
 
-    // 1. Pre-Mastering Stage
+    // === 1. HIGH-FIDELITY MASTERING EQ STAGE ===
     this.hpf = this.context.createBiquadFilter();
     this.hpf.type = 'highpass';
-    this.hpf.frequency.value = 32; // Default starting frequency
+    this.hpf.frequency.value = 30; // Default Starting Highpass Frequency
+
+    this.lowShelf = this.context.createBiquadFilter();
+    this.lowShelf.type = 'lowshelf';
+    this.lowShelf.frequency.value = 100;
+    this.lowShelf.gain.value = 0.0; // flat by default
 
     this.subtractiveEq = this.context.createBiquadFilter();
     this.subtractiveEq.type = 'peaking';
-    this.subtractiveEq.frequency.value = 250;
-    this.subtractiveEq.Q.value = 0.5;
+    this.subtractiveEq.frequency.value = 2500;
+    this.subtractiveEq.Q.value = 1.0;
     this.subtractiveEq.gain.value = 0.0; // flat by default
 
-    // Connect source to pre-mastering EQ
-    this.source.connect(this.hpf);
-    this.hpf.connect(this.subtractiveEq);
+    this.highShelf = this.context.createBiquadFilter();
+    this.highShelf.type = 'highshelf';
+    this.highShelf.frequency.value = 10000;
+    this.highShelf.gain.value = 0.0; // flat by default
 
-    // 2. Mid-Side Splitter (Split Stereo to Left/Right channels)
+    // === 2. DUMMY COMPATIBILITY NODES ===
+    // We instantiate these nodes so that existing references and controls in AudioService.js
+    // do not throw errors or crashes, but we do NOT route audio through them to prevent phase/clipping issues.
     this.msSplitter = this.context.createChannelSplitter(2);
-    this.subtractiveEq.connect(this.msSplitter);
-
-    // Reconstruct Mid Channel (M = 0.5 * L + 0.5 * R)
-    const midL = this.context.createGain();
-    midL.gain.value = 0.5;
-    const midR = this.context.createGain();
-    midR.gain.value = 0.5;
-
-    this.msSplitter.connect(midL, 0); // Left channel to midL
-    this.msSplitter.connect(midR, 1); // Right channel to midR
-
-    const midSignal = this.context.createGain();
-    midL.connect(midSignal);
-    midR.connect(midSignal);
-
-    // 3. Mid Channel Processing
-    this.midLowComp = this.context.createDynamicsCompressor();
-    this.midLowComp.threshold.value = -12;
-    this.midLowComp.knee.value = 6;
-    this.midLowComp.ratio.value = 2;
-    this.midLowComp.attack.value = 0.05;
-    this.midLowComp.release.value = 0.1;
-
-    this.midVocalComp = this.context.createDynamicsCompressor();
-    this.midVocalComp.threshold.value = -10;
-    this.midVocalComp.knee.value = 4;
-    this.midVocalComp.ratio.value = 3;
-    this.midVocalComp.attack.value = 0.005; // fast attack for vocals
-    this.midVocalComp.release.value = 0.08;
-
-    this.midExciter = this.context.createWaveShaper();
-    this.midExciter.curve = this.makeTubeSaturationCurve(0.35);
-    this.midExciter.oversample = '2x';
-
     this.midNode = this.context.createGain();
-    this.midNode.gain.value = 0.55; // default immersive spatial gain (headroom adjusted)
+    this.midNode.gain.value = 1.0;
+    this.sideNode = this.context.createGain();
+    this.sideNode.gain.value = 1.0;
+    this.msMergerLeft = this.context.createGain();
+    this.msMergerRight = this.context.createGain();
+    this.msMerger = this.context.createChannelMerger(2);
 
-    midSignal.connect(this.midLowComp);
-    this.midLowComp.connect(this.midVocalComp);
-    this.midVocalComp.connect(this.midExciter);
-    this.midExciter.connect(this.midNode);
+    this.midLowComp = this.context.createDynamicsCompressor();
+    this.midVocalComp = this.context.createDynamicsCompressor();
+    this.midExciter = this.context.createWaveShaper();
+    this.midExciter.curve = this.makeTubeSaturationCurve(0.1);
 
-    // 4. Reconstruct Side Channel (S = 0.5 * L - 0.5 * R)
-    const sideL = this.context.createGain();
-    sideL.gain.value = 0.5;
-    const sideRInvert = this.context.createGain();
-    sideRInvert.gain.value = -0.5; // Phase invert the Right channel
-
-    this.msSplitter.connect(sideL, 0); // Left channel to sideL
-    this.msSplitter.connect(sideRInvert, 1); // Right channel to sideRInvert
-
-    const sideSignal = this.context.createGain();
-    sideL.connect(sideSignal);
-    sideRInvert.connect(sideSignal);
-
-    // 5. Side Channel Processing
     this.sidechainDucker = this.context.createBiquadFilter();
     this.sidechainDucker.type = 'peaking';
-    this.sidechainDucker.frequency.value = 2000; // ducking upper mid frequency pocket
-    this.sidechainDucker.Q.value = 1.0;
-    this.sidechainDucker.gain.value = 0.0; // flat initially
+    this.sidechainDucker.frequency.value = 2000;
+    this.sidechainDucker.gain.value = 0.0;
 
     this.sideHaasDelay = this.context.createDelay(0.1);
-    this.sideHaasDelay.delayTime.value = 0.006; // 6ms delay
-
     this.sideHaasGain = this.context.createGain();
-    this.sideHaasGain.gain.value = 0.0; // set to 0 to bypass by default
+    this.sideHaasGain.gain.value = 0.0;
 
-    this.sideNode = this.context.createGain();
-    this.sideNode.gain.value = 0.45; // default side gain (headroom adjusted)
-
-    sideSignal.connect(this.sidechainDucker);
-
-    // Wide stereo parallel routing:
-    // Connect sidechainDucker directly to sideNode for clean stereo image.
-    this.sidechainDucker.connect(this.sideNode);
-    // Instantiate/connect Haas path to prevent object reference errors, 
-    // but DO NOT connect sideHaasGain to sideNode to avoid phase cancellations.
-    this.sidechainDucker.connect(this.sideHaasDelay);
-    this.sideHaasDelay.connect(this.sideHaasGain);
-
-    // 6. Schroeder Reverb stage (Algorithmic Room Reverb)
     this.reverbWet = this.context.createGain();
-    this.reverbWet.gain.value = 0.06; // subtle room feel, not a bathroom echo
-
+    this.reverbWet.gain.value = 0.0;
     this.reverbDry = this.context.createGain();
     this.reverbDry.gain.value = 1.0;
 
-    // Connect midSignal to reverb dry path
-    midSignal.connect(this.reverbDry);
-
-    // Schroeder Comb Filters (Parallel feedback delay lines)
-    const combDelays = [0.0297, 0.0371, 0.0411, 0.0437];
-    const combFeedback = 0.52; // Reduced feedback to prevent ringing
-    this.combFilters = combDelays.map(delayTime => {
-      const delay = this.context.createDelay(1.0);
-      delay.delayTime.value = delayTime;
-      const gain = this.context.createGain();
-      gain.gain.value = combFeedback;
-      
-      delay.connect(gain);
-      gain.connect(delay);
-      return { input: delay, output: delay };
-    });
-
-    // Schroeder Allpass Filters (Series phase diffusers)
-    const allpassFreqs = [347, 113];
-    this.allpassFilters = allpassFreqs.map(freq => {
-      const filter = this.context.createBiquadFilter();
-      filter.type = 'allpass';
-      filter.frequency.value = freq;
-      return filter;
-    });
-
-    const combMerger = this.context.createGain();
-    combMerger.gain.value = 0.25; // Scale comb output to prevent clipping
-
-    this.combFilters.forEach(cf => {
-      midSignal.connect(cf.input);
-      cf.output.connect(combMerger);
-    });
-
-    // Chain allpass filters in series
-    let lastFilter = combMerger;
-    this.allpassFilters.forEach(ap => {
-      lastFilter.connect(ap);
-      lastFilter = ap;
-    });
-
-    lastFilter.connect(this.reverbWet);
-
-    // 7. Reconstruction (Mid-Side Merger)
-    this.msMergerLeft = this.context.createGain();
-    this.msMergerRight = this.context.createGain();
-
-    // Left channel = M + S + ReverbWet
-    this.midNode.connect(this.msMergerLeft);
-    this.sideNode.connect(this.msMergerLeft);
-    this.reverbWet.connect(this.msMergerLeft);
-
-    // Right channel = M - S + ReverbWet
-    this.midNode.connect(this.msMergerRight);
-    this.reverbWet.connect(this.msMergerRight);
-
-    const sideInvert = this.context.createGain();
-    sideInvert.gain.value = -1.0; // Invert side channel phase
-    this.sideNode.connect(sideInvert);
-    sideInvert.connect(this.msMergerRight);
-
-    this.msMerger = this.context.createChannelMerger(2);
-    this.msMergerLeft.connect(this.msMerger, 0, 0); // Left channel
-    this.msMergerRight.connect(this.msMerger, 0, 1); // Right channel
-
-    // 8. Post-Mastering Output Stage
+    // === 3. MASTERING LIMITER STAGE ===
     this.softClipper = this.context.createWaveShaper();
     this.softClipper.curve = this.makeSoftClipperCurve();
     this.softClipper.oversample = '4x';
@@ -259,15 +141,19 @@ class AudioEngine {
     this.limiter.release.value = 0.05;
 
     this.lufsGain = this.context.createGain();
-    this.lufsGain.gain.value = 0.85; // pull back to avoid clipping into the limiter
+    this.lufsGain.gain.value = 0.85; // pull back to avoid clipping into the destination
 
-    // 9. Analyser Stage
+    // === 4. ANALYSER STAGE ===
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = 256;
 
-    // Connect final mastering chain
-    this.msMerger.connect(this.softClipper);
-    this.softClipper.connect(this.limiter);
+    // === 5. DIRECT HIGH-FIDELITY STEREO SIGNAL PATH ===
+    // source -> HPF -> LowShelf -> PeakingEQ (subtractiveEq) -> HighShelf -> Limiter -> LUFSGain -> Analyser -> destination
+    this.source.connect(this.hpf);
+    this.hpf.connect(this.lowShelf);
+    this.lowShelf.connect(this.subtractiveEq);
+    this.subtractiveEq.connect(this.highShelf);
+    this.highShelf.connect(this.limiter);
     this.limiter.connect(this.lufsGain);
     this.lufsGain.connect(this.analyser);
     this.analyser.connect(this.context.destination);

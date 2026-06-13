@@ -16,7 +16,7 @@ export default function InsightsScreen() {
   const [geminiKey, setGeminiKey] = useState('');
 
   useEffect(() => {
-    setGeminiKey(loadGeminiKey() || 'AIzaSyDsVRrq69x_IG-c9RSUQh3gxUIRSYeN3dI');
+    setGeminiKey(loadGeminiKey() || '');
   }, []);
 
   const handleSaveKey = () => {
@@ -26,10 +26,15 @@ export default function InsightsScreen() {
 
   const topSongs = useMemo(() => {
     if (!stats.tracks) return [];
+    const seenIds = new Set();
     return history
       .slice()
       .sort((a, b) => (stats.tracks[b.id]?.playCount || 0) - (stats.tracks[a.id]?.playCount || 0))
-      .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
+      .filter((v) => {
+        if (seenIds.has(v.id)) return false;
+        seenIds.add(v.id);
+        return true;
+      })
       .slice(0, 5);
   }, [stats, history]);
 

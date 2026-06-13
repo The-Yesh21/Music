@@ -8,6 +8,7 @@ import {
   addToHistory, addListeningTime,
 } from '../services/StorageService';
 import { updateMLModel } from '../services/MLTreeEngine';
+import { usePlayerStore } from '../playerStore';
 
 const MusicContext = createContext(null);
 export const useMusic = () => useContext(MusicContext);
@@ -88,7 +89,10 @@ export const MusicProvider = ({ children }) => {
       return;
     }
 
-    const idx = currentQueue.findIndex((x) => x.id === currentSong.id);
+    // BUG-02: use a local resolvedQueue so downstream code always sees the latest queue
+    let resolvedQueue = currentQueue;
+
+    const idx = resolvedQueue.findIndex((x) => x.id === currentSong.id);
     if (idx === -1) return;
 
     // Identify songs to resolve (up to 7)
@@ -96,7 +100,7 @@ export const MusicProvider = ({ children }) => {
     if (stateRef.current.shuffle) {
       // Resolve up to 7 random songs in the queue that don't have URIs
       const unresolvedIdxs = [];
-      currentQueue.forEach((song, i) => {
+      resolvedQueue.forEach((song, i) => {
         const isTaste = String(song.id).startsWith('taste_') || String(song.id).startsWith('python_');
         if (i !== idx && (!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
           unresolvedIdxs.push(i);
@@ -105,14 +109,14 @@ export const MusicProvider = ({ children }) => {
       // Shuffle indices and pick up to 7
       const chosenIdxs = unresolvedIdxs.sort(() => 0.5 - Math.random()).slice(0, 7);
       chosenIdxs.forEach(index => {
-        songsToResolve.push({ index, song: currentQueue[index] });
+        songsToResolve.push({ index, song: resolvedQueue[index] });
       });
     } else {
       // Resolve the next 7 songs in sequence
       for (let i = 1; i <= 7; i++) {
         const nextIdx = idx + i;
-        if (nextIdx < currentQueue.length) {
-          const song = currentQueue[nextIdx];
+        if (nextIdx < resolvedQueue.length) {
+          const song = resolvedQueue[nextIdx];
           const isTaste = String(song.id).startsWith('taste_') || String(song.id).startsWith('python_');
           if ((!song.uri || isTaste) && !resolvingSongsRef.current.has(song.id)) {
             songsToResolve.push({ index: nextIdx, song });
@@ -124,7 +128,7 @@ export const MusicProvider = ({ children }) => {
     if (songsToResolve.length > 0) {
       songsToResolve.forEach(({ song }) => resolvingSongsRef.current.add(song.id));
       try {
-        const updatedQueue = [...currentQueue];
+        const updatedQueue = [...resolvedQueue];
         let queueChanged = false;
 
         await Promise.all(songsToResolve.map(async ({ index, song }) => {
@@ -159,7 +163,8 @@ export const MusicProvider = ({ children }) => {
 
         if (queueChanged) {
           dispatch({ type: 'SET_QUEUE', queue: updatedQueue });
-          currentQueue = updatedQueue;
+          // BUG-02: update resolvedQueue so downstream code uses the resolved songs
+          resolvedQueue = updatedQueue;
         }
       } catch (err) {
         console.error('Error pre-resolving queue:', err);
@@ -169,30 +174,30 @@ export const MusicProvider = ({ children }) => {
 
     // Set the immediate next track in AudioService
     let nextIdx;
-    if (stateRef.current.shuffle && currentQueue.length > 1) {
+    if (stateRef.current.shuffle && resolvedQueue.length > 1) {
       let attempts = 0;
       do {
-        nextIdx = Math.floor(Math.random() * currentQueue.length);
+        nextIdx = Math.floor(Math.random() * resolvedQueue.length);
         attempts++;
-      } while ((nextIdx === idx || stateRef.current.dislikes.has(currentQueue[nextIdx].id)) && attempts < 20);
+      } while ((nextIdx === idx || stateRef.current.dislikes.has(String(resolvedQueue[nextIdx].id))) && attempts < 20);
     } else {
       nextIdx = idx + 1;
-      while (nextIdx < currentQueue.length && stateRef.current.dislikes.has(currentQueue[nextIdx].id)) {
+      while (nextIdx < resolvedQueue.length && stateRef.current.dislikes.has(String(resolvedQueue[nextIdx].id))) {
         nextIdx++;
       }
     }
 
-    if (nextIdx < currentQueue.length) {
-      AudioService.setNextTrack(currentQueue[nextIdx]);
+    if (nextIdx < resolvedQueue.length) {
+      AudioService.setNextTrack(resolvedQueue[nextIdx]);
     } else {
       // If we are at the end of the queue, and repeat all is enabled, loop back to the start!
-      if (stateRef.current.repeat === 'all' && currentQueue.length > 0) {
+      if (stateRef.current.repeat === 'all' && resolvedQueue.length > 0) {
         let firstIdx = 0;
-        while (firstIdx < currentQueue.length && stateRef.current.dislikes.has(currentQueue[firstIdx].id)) {
+        while (firstIdx < resolvedQueue.length && stateRef.current.dislikes.has(String(resolvedQueue[firstIdx].id))) {
           firstIdx++;
         }
-        if (firstIdx < currentQueue.length) {
-          let firstSong = { ...currentQueue[firstIdx] };
+        if (firstIdx < resolvedQueue.length) {
+          let firstSong = { ...resolvedQueue[firstIdx] };
           if (!firstSong.uri || String(firstSong.id).startsWith('taste_') || String(firstSong.id).startsWith('python_')) {
             try {
               const searchResults = await JioSaavnAPI.searchSongs(`${firstSong.title} ${firstSong.artist}`);
@@ -211,14 +216,14 @@ export const MusicProvider = ({ children }) => {
       // If we are at the end of the queue, extend it in advance!
       try {
         const extensionSongs = await extendRadioQueue(currentSong, { 
-          existingQueue: currentQueue, 
+          existingQueue: resolvedQueue, 
           dislikedIds: stateRef.current.dislikes,
           favorites: stateRef.current.favorites,
           history: stateRef.current.history
         });
         
         if (extensionSongs.length > 0) {
-          const newQueue = [...currentQueue, ...extensionSongs];
+          const newQueue = [...resolvedQueue, ...extensionSongs];
           dispatch({ type: 'SET_QUEUE', queue: newQueue });
           
           let nextSong = { ...extensionSongs[0] };
@@ -236,12 +241,14 @@ export const MusicProvider = ({ children }) => {
     }
   };
 
-  // Keep pre-resolved next track in sync with repeat, shuffle, and queue edits
+  // Keep pre-resolved next track in sync with repeat, shuffle, and song changes
+  // BUG-13: removed state.queue from deps — preResolveNextSong dispatches SET_QUEUE which
+  // would re-trigger this effect endlessly if state.queue were listed here.
   useEffect(() => {
     if (state.currentSong) {
       preResolveNextSong(state.currentSong, state.queue);
     }
-  }, [state.repeat, state.shuffle, state.queue, state.currentSong?.id]);
+  }, [state.repeat, state.shuffle, state.currentSong?.id]);
 
   useEffect(() => {
     AudioService.setStatusCallback((status) => {
@@ -429,7 +436,8 @@ export const MusicProvider = ({ children }) => {
       console.error('Playback Error:', error);
       skipNext();
     } finally {
-      dispatch({ type: 'SET_BUFFERING', isBuffering: false });
+      // BUG-01: reducer reads action.value, not action.isBuffering
+      dispatch({ type: 'SET_BUFFERING', value: false });
     }
   };
 
@@ -471,10 +479,10 @@ export const MusicProvider = ({ children }) => {
       do {
         nextIdx = Math.floor(Math.random() * updatedState.queue.length);
         attempts++;
-      } while ((nextIdx === idx || updatedState.dislikes.has(updatedState.queue[nextIdx].id)) && attempts < 20);
+      } while ((nextIdx === idx || updatedState.dislikes.has(String(updatedState.queue[nextIdx].id))) && attempts < 20);
     } else {
       nextIdx = idx + 1;
-      while (nextIdx < updatedState.queue.length && updatedState.dislikes.has(updatedState.queue[nextIdx].id)) {
+      while (nextIdx < updatedState.queue.length && updatedState.dislikes.has(String(updatedState.queue[nextIdx].id))) {
         nextIdx++;
       }
     }
@@ -487,7 +495,7 @@ export const MusicProvider = ({ children }) => {
     // If we are at the end of the queue, and repeat all is enabled, loop back to the start!
     if (updatedState.repeat === 'all' && updatedState.queue.length > 0) {
       let firstIdx = 0;
-      while (firstIdx < updatedState.queue.length && updatedState.dislikes.has(updatedState.queue[firstIdx].id)) {
+      while (firstIdx < updatedState.queue.length && updatedState.dislikes.has(String(updatedState.queue[firstIdx].id))) {
         firstIdx++;
       }
       if (firstIdx < updatedState.queue.length) {
@@ -514,7 +522,7 @@ export const MusicProvider = ({ children }) => {
         const suggestions = await JioSaavnAPI.getSuggestions(updatedState.currentSong.id);
         const filtered = suggestions.filter(s => 
           s.id !== updatedState.currentSong.id && 
-          !updatedState.dislikes.has(s.id)
+          !updatedState.dislikes.has(String(s.id))
         );
         if (filtered.length > 0) {
           dispatch({ type: 'SET_QUEUE', queue: [...updatedState.queue, ...filtered] });
@@ -613,8 +621,16 @@ export const MusicProvider = ({ children }) => {
       stopSong: async () => { await AudioService.unload(); dispatch({ type: 'SET_PLAYING', value: false }); },
       nextSong: skipNext,
       previousSong: skipPrev,
-      toggleShuffle: () => dispatch({ type: 'TOGGLE_SHUFFLE' }),
-      setRepeat: () => dispatch({ type: 'SET_REPEAT' }),
+      toggleShuffle: () => {
+        dispatch({ type: 'TOGGLE_SHUFFLE' });
+        // BUG-07: keep Zustand playerStore in sync so PlayerBar reads the same state
+        usePlayerStore.getState().toggleShuffle();
+      },
+      setRepeat: () => {
+        dispatch({ type: 'SET_REPEAT' });
+        // BUG-07: keep Zustand playerStore in sync so PlayerBar reads the same state
+        usePlayerStore.getState().setRepeat();
+      },
     }}>
       {children}
     </MusicContext.Provider>

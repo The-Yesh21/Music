@@ -28,12 +28,12 @@ export default function HomeScreen({ onNavigate }) {
 
   // Fetch trending
   useEffect(() => {
-    async function fetch() {
+    async function fetchTrending() {
       const data = await JioSaavnAPI.getTrending();
       setTrending(data);
       setIsLoading(false);
     }
-    fetch();
+    fetchTrending();
   }, []);
 
   // Fetch personalized songs when taste profile exists

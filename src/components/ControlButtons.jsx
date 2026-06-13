@@ -18,7 +18,7 @@ export default function ControlButtons({ isPlaying, onPlay, onPrev, onNext, size
       {/* Previous */}
       <button style={{ ...btn, width: isLarge ? 48 : 36, height: isLarge ? 48 : 36 }}
         onClick={onPrev} onMouseDown={handleActive} onMouseUp={handleRelease} onTouchStart={handleActive} onTouchEnd={handleRelease}>
-        <i className="fas fa-backward-step" style={{ fontSize: isLarge ? 26 : 18, color: 'var(--text-secondary)' }} />
+        <i className="fas fa-backward" style={{ fontSize: isLarge ? 26 : 18, color: 'var(--text-secondary)' }} />
       </button>
 
       {/* Play / Pause */}
@@ -36,7 +36,7 @@ export default function ControlButtons({ isPlaying, onPlay, onPrev, onNext, size
       {/* Next */}
       <button style={{ ...btn, width: isLarge ? 48 : 36, height: isLarge ? 48 : 36 }}
         onClick={onNext} onMouseDown={handleActive} onMouseUp={handleRelease} onTouchStart={handleActive} onTouchEnd={handleRelease}>
-        <i className="fas fa-forward-step" style={{ fontSize: isLarge ? 26 : 18, color: 'var(--text-secondary)' }} />
+        <i className="fas fa-forward" style={{ fontSize: isLarge ? 26 : 18, color: 'var(--text-secondary)' }} />
       </button>
     </div>
   );

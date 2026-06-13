@@ -29,7 +29,8 @@ export default function PlayerScreen({ onClose }) {
   const handleSeek = (e) => {
     if (!progressRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     seekTo(percent * durationMillis);
   };
 
@@ -403,6 +404,9 @@ export default function PlayerScreen({ onClose }) {
             }}
             onClick={handleSeek}
             onMouseDown={handleMouseDown}
+            onTouchStart={(e) => { setIsDragging(true); handleSeek(e); }}
+            onTouchMove={(e) => { if (isDragging) handleSeek(e); }}
+            onTouchEnd={() => setIsDragging(false)}
           >
             <div 
               style={{ 

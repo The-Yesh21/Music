@@ -108,3 +108,12 @@ export const saveHuggingFaceKey = (key) => {
 export const loadHuggingFaceKey = () => localStorage.getItem('hf_token');
 
 // User Data
+export const saveUserProfile = (profile) => {
+  try { localStorage.setItem('echotune_user_profile', JSON.stringify(profile)); } catch {}
+};
+export const loadUserProfile = () => {
+  try {
+    const v = localStorage.getItem('echotune_user_profile');
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+};

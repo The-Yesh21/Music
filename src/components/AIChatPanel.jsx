@@ -76,7 +76,7 @@ export default function AIChatPanel() {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
       handleSend();
     }
   };
@@ -148,7 +148,7 @@ export default function AIChatPanel() {
             placeholder="E.g. Play some energetic workout songs..."
             value={inputText}
             onChange={e => setInputText(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
           />
           <button className="ai-send-btn" onClick={handleSend} disabled={!inputText.trim()}>
             <i className="fas fa-arrow-up" />

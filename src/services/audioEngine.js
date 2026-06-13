@@ -3,6 +3,7 @@ class AudioEngine {
     this.context = null;
     this.source = null;
     this.analyser = null;
+    this._listenersRegistered = false;
 
     // === PRE-MASTERING STAGE ===
     this.hpf = null;
@@ -158,21 +159,24 @@ class AudioEngine {
     this.lufsGain.connect(this.analyser);
     this.analyser.connect(this.context.destination);
 
-    // Android: resume on touch
-    document.addEventListener('touchstart', () => this.resume(), { passive: true });
-    
-    // Capacitor-specific: app resume event
-    if (isCapacitor) {
-      document.addEventListener('resume', () => {
-        this.resume();
-        if (audioElement.paused && window.__echotune_was_playing) {
-          audioElement.play().catch(() => {});
-        }
-      });
-      
-      document.addEventListener('pause', () => {
-        window.__echotune_was_playing = !audioElement.paused;
-      });
+    // Android: resume on touch + Capacitor lifecycle events (registered only once)
+    if (!this._listenersRegistered) {
+      this._listenersRegistered = true;
+      document.addEventListener('touchstart', () => this.resume(), { passive: true });
+
+      // Capacitor-specific: app resume/pause events
+      if (isCapacitor) {
+        document.addEventListener('resume', () => {
+          this.resume();
+          if (audioElement.paused && window.__echotune_was_playing) {
+            audioElement.play().catch(() => {});
+          }
+        });
+
+        document.addEventListener('pause', () => {
+          window.__echotune_was_playing = !audioElement.paused;
+        });
+      }
     }
 
     if (this.context.state === 'suspended') {

@@ -119,7 +119,7 @@ export const buildRadioPlaylist = async (seedSong, { existingQueue = [], dislike
         history: histPayload,
         limit: 15
       }),
-      signal: AbortSignal.timeout(1500) // fast timeout
+      signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 1500); return c.signal; })() // fast timeout (compatible polyfill)
     });
 
     if (pyResponse.ok) {

@@ -58,9 +58,12 @@ export const buildDecisionTree = () => {
   // Level 0: Root (All songs)
   const rootSongs = [...tasteSongs];
   
-  // Calculate average BPM for the split
-  const bpms = rootSongs.map(s => s.bpm);
-  const medianBpm = bpms.sort((a, b) => a - b)[Math.floor(bpms.length / 2)] || 100;
+  // Calculate median BPM for the split (properly handles even-length arrays)
+  const sortedBpms = rootSongs.map(s => Number(s.bpm) || 100).sort((a, b) => a - b);
+  const mid = Math.floor(sortedBpms.length / 2);
+  const medianBpm = sortedBpms.length % 2 !== 0
+    ? sortedBpms[mid]
+    : Math.round((sortedBpms[mid - 1] + sortedBpms[mid]) / 2) || 100;
 
   // Split Level 1: Tempo / BPM (Energetic vs. Soulful)
   const highTempoSongs = rootSongs.filter(s => s.bpm > medianBpm);
@@ -239,6 +242,9 @@ export const computePredictionTree = (node) => {
 export const updateMLModel = (song, actionType) => {
   if (!song) return;
 
+  // NaN recovery guard — reset to a sane default if averageBpm has gone NaN
+  if (isNaN(userState.averageBpm)) userState.averageBpm = 100;
+
   // Track the song details in our registry so we can map its ID to title/artist for Python recommendation backend
   if (song.id) {
     encounteredSongs.set(song.id, { title: song.title || song.Title, artist: song.artist || song.Artist });
@@ -247,8 +253,9 @@ export const updateMLModel = (song, actionType) => {
   const alpha = 0.25; // Learning rate for exponential moving average
   
   if (actionType === 'PLAY') {
-    // 1. Learn BPM preference
-    userState.averageBpm = (1 - alpha) * userState.averageBpm + alpha * song.bpm;
+    // 1. Learn BPM preference (default to 100 if song.bpm is undefined/NaN)
+    const bpm = Number(song.bpm) || 100;
+    userState.averageBpm = (1 - alpha) * userState.averageBpm + alpha * bpm;
     
     // 2. Increment play count
     userState.playCounts[song.id] = (userState.playCounts[song.id] || 0) + 1;
@@ -266,8 +273,9 @@ export const updateMLModel = (song, actionType) => {
     if (song.mood) userState.moodWeights[song.mood] = (userState.moodWeights[song.mood] || 1.0) + 0.6;
     if (song.genre) userState.genreWeights[song.genre] = (userState.genreWeights[song.genre] || 1.0) + 0.6;
     
-    // Shift BPM target faster towards liked song
-    userState.averageBpm = (1 - 0.4) * userState.averageBpm + 0.4 * song.bpm;
+    // Shift BPM target faster towards liked song (default to 100 if song.bpm is undefined/NaN)
+    const bpm = Number(song.bpm) || 100;
+    userState.averageBpm = (1 - 0.4) * userState.averageBpm + 0.4 * bpm;
   } 
   
   else if (actionType === 'UNLIKE') {
@@ -379,7 +387,7 @@ export const getMLTreeRecommendationsAsync = async (limit = 15, seedSong = null)
         history: [], 
         limit
       }),
-      signal: AbortSignal.timeout(1500) // 1.5s timeout for fast failover
+      signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 1500); return c.signal; })() // 1.5s timeout (compatible polyfill)
     });
 
     if (response.ok) {

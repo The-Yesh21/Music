@@ -454,23 +454,30 @@ class AudioService {
     this._updateMediaSession();
 
     // Wait until browser has enough data or an error occurs
-    await new Promise((resolve) => {
+    const loadResult = await new Promise((resolve) => {
       const cleanup = () => {
         this.audio.removeEventListener('canplaythrough', onCanPlayThrough);
         this.audio.removeEventListener('error', onError);
       };
       const onCanPlayThrough = () => {
         cleanup();
-        resolve();
+        resolve(null);
       };
+      // BUG-12: resolve with {error:true} so we can detect failure without throwing
       const onError = () => {
         cleanup();
-        resolve();
+        resolve({ error: true });
       };
       this.audio.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
       this.audio.addEventListener('error', onError, { once: true });
       this.audio.load();
     });
+
+    // BUG-12: skip playback if the stream failed to load
+    if (loadResult && loadResult.error) {
+      if (this.statusCallback) this.statusCallback({ error: 'Failed to load audio stream.', isBuffering: false });
+      return;
+    }
 
     try {
       await this.audio.play();

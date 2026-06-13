@@ -1,12 +1,10 @@
 import React from 'react';
 import { useMusic } from '../context/MusicContext';
 import { Shuffle, Repeat } from 'lucide-react';
-import { usePlayerStore } from '../playerStore';
 
 export default function PlayerBar({ onToggleQueue, showQueue, onPress }) {
-  const { state, togglePlay, skipNext, skipPrev, seekTo, setVolume, toggleFavorite } = useMusic();
-  const { currentSong, isPlaying, isBuffering, positionMillis, durationMillis, favorites } = state;
-  const { shuffle, toggleShuffle, repeat, setRepeat } = usePlayerStore();
+  const { state, togglePlay, skipNext, skipPrev, seekTo, setVolume, toggleFavorite, toggleShuffle, setRepeat } = useMusic();
+  const { currentSong, isPlaying, isBuffering, positionMillis, durationMillis, favorites, shuffle, repeat } = state;
 
   if (!currentSong) return null;
 

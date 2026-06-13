@@ -1,3 +1,8 @@
+/**
+ * @deprecated MiniPlayer is not currently rendered anywhere in the app.
+ * PlayerBar.jsx (src/components/PlayerBar.jsx) handles the bottom player bar instead.
+ * This component is kept as a reference for potential future mobile bottom-sheet use.
+ */
 import React from 'react';
 import { useMusic } from '../context/MusicContext';
 import ControlButtons from './ControlButtons';

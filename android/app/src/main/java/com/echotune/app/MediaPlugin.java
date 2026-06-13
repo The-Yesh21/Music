@@ -20,6 +20,7 @@ public class MediaPlugin extends Plugin {
     public void updateNotification(PluginCall call) {
         String title    = call.getString("title", "EchoTune");
         String artist   = call.getString("artist", "");
+        String artwork  = call.getString("artwork", "");   // album art URL
         Boolean playing = call.getBoolean("isPlaying", false);
         Long position   = call.getLong("position", 0L);
         Long duration   = call.getLong("duration", 0L);
@@ -27,6 +28,7 @@ public class MediaPlugin extends Plugin {
         Intent i = new Intent(getContext(), MediaPlaybackService.class);
         i.putExtra(MediaPlaybackService.EXTRA_TITLE,      title);
         i.putExtra(MediaPlaybackService.EXTRA_ARTIST,     artist);
+        i.putExtra(MediaPlaybackService.EXTRA_ARTWORK,    artwork);
         i.putExtra(MediaPlaybackService.EXTRA_IS_PLAYING, playing);
         i.putExtra(MediaPlaybackService.EXTRA_POSITION,   position);
         i.putExtra(MediaPlaybackService.EXTRA_DURATION,   duration);

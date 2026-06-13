@@ -58,6 +58,9 @@ class AudioService {
     this.nextTrack = null;
     this._mediaSessionRegistered = false;
 
+    // Periodic position sync for Android lock-screen seek bar
+    this._positionUpdateInterval = null;
+
     this._setupListeners();
   }
 
@@ -116,6 +119,19 @@ class AudioService {
       this._updateMediaSessionPosition();
       this._emit();
     });
+
+    // ── Duration becomes known after loadedmetadata/durationchange ───────────
+    // This is what enables the seek bar in the Android notification.
+    // At loadAndPlay() time, duration is still NaN so we must re-sync here.
+    this.audio.addEventListener('loadedmetadata', () => {
+      this._updateMediaSession();
+    });
+    this.audio.addEventListener('durationchange', () => {
+      if (!isNaN(this.audio.duration) && this.audio.duration > 0) {
+        this._updateMediaSession();
+      }
+    });
+
     this.audio.addEventListener('ended', () => {
       if (this.nextTrack) {
         const next = this.nextTrack;
@@ -145,6 +161,14 @@ class AudioService {
       audioEngine.resume();
       this.analyser = audioEngine.analyser;
       this.audioContext = audioEngine.context;
+
+      // Start periodic position sync every 10 s so lock-screen seek bar stays accurate
+      if (this._positionUpdateInterval) clearInterval(this._positionUpdateInterval);
+      this._positionUpdateInterval = setInterval(() => {
+        if (isNative() && this.currentTrack && !this.audio.paused) {
+          this._updateNativeNotification();
+        }
+      }, 10000);
 
       // Copy node references from audioEngine
       if (!this.hpf && audioEngine.hpf) {
@@ -180,6 +204,11 @@ class AudioService {
       this._emit();
     });
     this.audio.addEventListener('pause', () => {
+      // Stop periodic position sync when paused
+      if (this._positionUpdateInterval) {
+        clearInterval(this._positionUpdateInterval);
+        this._positionUpdateInterval = null;
+      }
       this._updateMediaSession();
       this._emit();
     });
@@ -392,6 +421,8 @@ class AudioService {
     MediaPlugin.updateNotification({
       title: this.currentTrack.title || 'EchoTune',
       artist: this.currentTrack.artist || '',
+      // Send artwork URL so the native notification can show album art
+      artwork: this.currentTrack.artwork || '',
       isPlaying: !this.audio.paused,
       position: position,
       duration: duration
@@ -501,10 +532,17 @@ class AudioService {
 
   async seekTo(millis) {
     this.audio.currentTime = millis / 1000;
+    // Sync the native notification seek bar to the new position after a short
+    // delay (100 ms) so the audio element has time to update currentTime.
+    setTimeout(() => this._updateMediaSession(), 150);
   }
 
   async unload() {
     if (this._vadIntervalId) clearInterval(this._vadIntervalId);
+    if (this._positionUpdateInterval) {
+      clearInterval(this._positionUpdateInterval);
+      this._positionUpdateInterval = null;
+    }
     this.audio.pause();
     this.audio.src = '';
     if (isNative()) {

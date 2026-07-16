@@ -2,6 +2,48 @@ import { useState, useEffect, useRef } from 'react';
 import likedSongsData from './liked_songs.json';
 import './index.css';
 
+function SongCard({ song, onPlay }) {
+  const [imgUrl, setImgUrl] = useState(null);
+
+  useEffect(() => {
+    // Dynamically fetch thumbnail on load
+    const fetchThumbnail = async () => {
+      try {
+        const query = encodeURIComponent(`${song.Title} ${song.Artist}`);
+        const res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+        const data = await res.json();
+        
+        if (data.success && data.data && data.data.results.length > 0) {
+          const track = data.data.results[0];
+          const bestImg = track.image.find(img => img.quality === '500x500')?.url || track.image[0]?.url;
+          setImgUrl(bestImg);
+        }
+      } catch (err) {
+        console.error('Failed to fetch thumbnail for', song.Title);
+      }
+    };
+    fetchThumbnail();
+  }, [song]);
+
+  return (
+    <div className="song-card" onClick={() => onPlay(song, imgUrl)}>
+      <div className="song-image-placeholder">
+        {imgUrl && <img src={imgUrl} alt={song.Title} />}
+        <div className="play-overlay">
+          <button className="play-btn">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          </button>
+        </div>
+      </div>
+      <div className="song-info">
+        <h3>{song.Title}</h3>
+        <p>{song.Artist}</p>
+      </div>
+      {song.Mood && <div className="mood-chip">{song.Mood}</div>}
+    </div>
+  );
+}
+
 function App() {
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
@@ -13,7 +55,7 @@ function App() {
     setSongs(likedSongsData);
   }, []);
 
-  const searchAndPlay = async (song) => {
+  const searchAndPlay = async (song, preloadedImgUrl) => {
     try {
       const query = encodeURIComponent(`${song.Title} ${song.Artist}`);
       const res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
@@ -21,14 +63,13 @@ function App() {
       
       if (data.success && data.data && data.data.results.length > 0) {
         const track = data.data.results[0];
-        // find highest quality download url
         const downloadUrl = track.downloadUrl.find(url => url.quality === '320kbps') || track.downloadUrl[0];
         
         setCurrentSong({
           ...song,
           apiData: track,
           streamUrl: downloadUrl.url,
-          image: track.image.find(img => img.quality === '500x500')?.url || track.image[0]?.url
+          image: preloadedImgUrl || track.image.find(img => img.quality === '500x500')?.url || track.image[0]?.url
         });
         
         setIsPlaying(true);
@@ -85,6 +126,7 @@ function App() {
           <a href="#" className="nav-link">Library</a>
           <a href="#" className="nav-link">Liked Songs</a>
         </div>
+        <button className="upgrade-btn">Upgrade to Pro</button>
       </div>
 
       {/* Main Content */}
@@ -96,20 +138,7 @@ function App() {
 
         <div className="song-grid">
           {songs.map((song, idx) => (
-            <div key={idx} className="song-card" onClick={() => searchAndPlay(song)}>
-              <div className="song-image-placeholder">
-                <div className="play-overlay">
-                  <button className="play-btn">
-                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  </button>
-                </div>
-              </div>
-              <div className="song-info">
-                <h3>{song.Title}</h3>
-                <p>{song.Artist}</p>
-              </div>
-              {song.Mood && <div className="mood-chip">{song.Mood}</div>}
-            </div>
+            <SongCard key={idx} song={song} onPlay={searchAndPlay} />
           ))}
         </div>
       </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import likedSongsData from './liked_songs.json';
+import categorizedSongsData from './categorized_songs.json';
+import Loader from './Loader';
+import ThemeToggle from './ThemeToggle';
 import './index.css';
 
 function SongCard({ song, onPlay }) {
@@ -56,11 +58,56 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isShuffle, setIsShuffle] = useState(false);
+  const [theme, setTheme] = useState('dark');
   const audioRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    setSongs(likedSongsData);
+    const saved = localStorage.getItem('custom_songs');
+    if (saved) {
+      setSongs([...JSON.parse(saved), ...categorizedSongsData]);
+    } else {
+      setSongs(categorizedSongsData);
+    }
   }, []);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${encodeURIComponent(searchQuery)}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSearchResults(data.data.results || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsSearching(false);
+  };
+
+  const addToLibrary = (track) => {
+    const newSong = {
+      Title: track.name,
+      Artist: track.primaryArtists,
+      Mood: 'New',
+      Genre: 'New'
+    };
+    if (songs.some(s => s.Title === newSong.Title)) return;
+    
+    const newSongs = [newSong, ...songs];
+    setSongs(newSongs);
+    
+    const saved = JSON.parse(localStorage.getItem('custom_songs') || '[]');
+    localStorage.setItem('custom_songs', JSON.stringify([newSong, ...saved]));
+    setSearchResults([]); 
+    setSearchQuery('');
+  };
 
   const searchAndPlay = async (song, preloadedImgUrl) => {
     try {
@@ -148,7 +195,7 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${theme}`}>
       {/* Sidebar */}
       <div className="sidebar glass">
         <div className="logo">EchoTube</div>
@@ -158,21 +205,70 @@ function App() {
           <a href="#" className="nav-link">Library</a>
           <a href="#" className="nav-link">Liked Songs</a>
         </div>
+        <div style={{ marginTop: 'auto', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+          <ThemeToggle theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+        </div>
         <button className="upgrade-btn">Upgrade to Pro</button>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="header">
-          <h1>Your Liked Songs</h1>
-          <p>Curated from your spreadsheet</p>
+        <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1>Your Liked Songs</h1>
+            <p>Curated from your spreadsheet</p>
+          </div>
+          
+          <div className="search-container" style={{ position: 'relative', display: 'flex', gap: '8px' }}>
+            <input 
+              type="text" 
+              placeholder="Search to add songs..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-primary)', width: '300px', outline: 'none' }}
+            />
+            <button className="upgrade-btn" onClick={handleSearch} style={{ margin: 0, padding: '12px 24px' }}>Search</button>
+            
+            {isSearching && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px', zIndex: 10, display: 'flex', justifyContent: 'center', padding: '40px', background: 'var(--surface-color)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <Loader />
+              </div>
+            )}
+            
+            {!isSearching && searchResults.length > 0 && (
+              <div className="search-results glass" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px', borderRadius: '12px', zIndex: 10, maxHeight: '400px', overflowY: 'auto' }}>
+                {searchResults.map(track => (
+                  <div key={track.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => searchAndPlay({Title: track.name, Artist: track.primaryArtists})}>
+                    <img src={track.image.find(img => img.quality === '150x150')?.url || track.image[0]?.url} alt="" style={{width: '40px', height: '40px', borderRadius: '4px'}} />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>{track.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{track.primaryArtists}</div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); addToLibrary(track); }} style={{ background: songs.some(s => s.Title === track.name) ? 'var(--border-color)' : 'var(--primary-accent)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                      {songs.some(s => s.Title === track.name) ? 'Added' : 'Add'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="song-grid">
-          {songs.map((song, idx) => (
-            <SongCard key={idx} song={song} onPlay={searchAndPlay} />
-          ))}
-        </div>
+        {['Happy', 'Lonely', 'Enjoyment'].map(category => {
+          const categorySongs = songs.filter(s => s.Category === category);
+          if (categorySongs.length === 0) return null;
+          return (
+            <div key={category} style={{ marginBottom: '40px' }}>
+              <h2 style={{ marginBottom: '16px', color: 'var(--text-primary)', fontSize: '24px', fontWeight: 'bold' }}>{category}</h2>
+              <div className="song-grid">
+                {categorySongs.map((song, idx) => (
+                  <SongCard key={idx} song={song} onPlay={searchAndPlay} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Bottom Player */}

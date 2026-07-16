@@ -9,9 +9,15 @@ function SongCard({ song, onPlay }) {
     // Dynamically fetch thumbnail on load
     const fetchThumbnail = async () => {
       try {
-        const query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-        const res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
-        const data = await res.json();
+        let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
+        let res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+        let data = await res.json();
+        
+        if (!data.success || !data.data || data.data.results.length === 0) {
+          query = encodeURIComponent(song.Title);
+          res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+          data = await res.json();
+        }
         
         if (data.success && data.data && data.data.results.length > 0) {
           const track = data.data.results[0];
@@ -49,6 +55,7 @@ function App() {
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isShuffle, setIsShuffle] = useState(false);
   const audioRef = useRef(null);
 
   useEffect(() => {
@@ -57,9 +64,15 @@ function App() {
 
   const searchAndPlay = async (song, preloadedImgUrl) => {
     try {
-      const query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-      const res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
-      const data = await res.json();
+      let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
+      let res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+      let data = await res.json();
+      
+      if (!data.success || !data.data || data.data.results.length === 0) {
+        query = encodeURIComponent(song.Title);
+        res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+        data = await res.json();
+      }
       
       if (data.success && data.data && data.data.results.length > 0) {
         const track = data.data.results[0];
@@ -115,6 +128,25 @@ function App() {
     }
   };
 
+  const playNext = () => {
+    if (!currentSong || songs.length === 0) return;
+    let nextIndex;
+    if (isShuffle) {
+      nextIndex = Math.floor(Math.random() * songs.length);
+    } else {
+      const currentIndex = songs.findIndex(s => s.Title === currentSong.Title);
+      nextIndex = (currentIndex + 1) % songs.length;
+    }
+    searchAndPlay(songs[nextIndex]);
+  };
+
+  const playPrev = () => {
+    if (!currentSong || songs.length === 0) return;
+    const currentIndex = songs.findIndex(s => s.Title === currentSong.Title);
+    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
+    searchAndPlay(songs[prevIndex]);
+  };
+
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -159,7 +191,10 @@ function App() {
 
         <div className="player-controls">
           <div className="control-buttons">
-            <button className="icon-btn">
+            <button className={`icon-btn ${isShuffle ? 'active-shuffle' : ''}`} onClick={() => setIsShuffle(!isShuffle)} style={{ color: isShuffle ? 'var(--primary-accent)' : '' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+            </button>
+            <button className="icon-btn" onClick={playPrev}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
             </button>
             <button className="icon-btn primary" onClick={togglePlay}>
@@ -169,7 +204,7 @@ function App() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               )}
             </button>
-            <button className="icon-btn">
+            <button className="icon-btn" onClick={playNext}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
             </button>
           </div>
@@ -189,7 +224,7 @@ function App() {
         ref={audioRef} 
         src={currentSong?.streamUrl} 
         onTimeUpdate={handleTimeUpdate}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={playNext}
       />
     </div>
   );

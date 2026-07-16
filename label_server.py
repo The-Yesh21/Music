@@ -108,13 +108,13 @@ def index():
                 const results = data.data && data.data.results;
                 if(results) {
                     const html = results.map(r => {
-                        const url = (r.downloadUrl.find(u=>u.quality==='320kbps') || r.downloadUrl[0]).url;
-                        const img = (r.image.find(i=>i.quality==='500x500') || r.image[0]).url;
-                        const safeName = r.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                        const safeArtist = r.primaryArtists.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const url = (r.downloadUrl && Array.isArray(r.downloadUrl)) ? (r.downloadUrl.find(u=>u.quality==='320kbps') || r.downloadUrl[0]).url : '';
+                        const img = (r.image && Array.isArray(r.image)) ? (r.image.find(i=>i.quality==='500x500') || r.image[0]).url : '';
+                        const safeName = (r.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const safeArtist = (r.primaryArtists || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         return `<div class="result-item" onclick="selectSearchedSong('${safeName}', '${safeArtist}', '${url}', '${img}')">
-                            <div style="font-size: 14px; font-weight: bold;">${r.name}</div>
-                            <div style="font-size: 12px; color: #888;">${r.primaryArtists}</div>
+                            <div style="font-size: 14px; font-weight: bold;">${r.name || 'Unknown'}</div>
+                            <div style="font-size: 12px; color: #888;">${r.primaryArtists || 'Unknown'}</div>
                         </div>`;
                     }).join('');
                     const container = document.getElementById('searchResults');
@@ -136,12 +136,24 @@ def index():
 
                 document.getElementById('song-title').innerText = songTitle;
                 document.getElementById('song-artist').innerText = songArtist;
-                document.getElementById('player').src = url;
-                document.getElementById('player').play();
+                
+                if (url) {
+                    document.getElementById('player').src = url;
+                    document.getElementById('player').play().catch(e => console.log('Audio play blocked:', e));
+                } else {
+                    document.getElementById('player').removeAttribute('src');
+                    document.getElementById('status').innerText = 'Audio preview not available on JioSaavn.';
+                }
+                
                 document.getElementById('searchResults').style.display = 'none';
                 document.getElementById('searchInput').value = '';
-                document.getElementById('badges').style.display = 'none';
-                document.getElementById('status').innerText = '';
+                
+                const badges = document.getElementById('badges');
+                if(badges) badges.style.display = 'none';
+                
+                if (url) {
+                    document.getElementById('status').innerText = '';
+                }
             }
 
             async function loadAudio() {

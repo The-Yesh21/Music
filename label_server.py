@@ -28,8 +28,12 @@ def index():
             break
             
     if not next_song:
-        return "<h1>All songs labeled! Close this window and tell the agent to run the ML model.</h1>"
-
+        next_song = {
+            'Title': 'All spreadsheet songs labeled!',
+            'Artist': 'Use the search bar above to add your own custom songs.',
+            'Genre': '',
+            'Mood': ''
+        }
     html = """
     <html>
     <head>
@@ -92,6 +96,9 @@ def index():
         <script>
             let songTitle = {{ song.Title | tojson | safe }};
             let songArtist = {{ song.Artist | tojson | safe }};
+            let songImage = "";
+            let songStreamUrl = "";
+            let isCustomSong = false;
 
             async function searchNewSong() {
                 const q = document.getElementById('searchInput').value;
@@ -102,9 +109,10 @@ def index():
                 if(results) {
                     const html = results.map(r => {
                         const url = (r.downloadUrl.find(u=>u.quality==='320kbps') || r.downloadUrl[0]).url;
+                        const img = (r.image.find(i=>i.quality==='500x500') || r.image[0]).url;
                         const safeName = r.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         const safeArtist = r.primaryArtists.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                        return `<div class="result-item" onclick="selectSearchedSong('${safeName}', '${safeArtist}', '${url}')">
+                        return `<div class="result-item" onclick="selectSearchedSong('${safeName}', '${safeArtist}', '${url}', '${img}')">
                             <div style="font-size: 14px; font-weight: bold;">${r.name}</div>
                             <div style="font-size: 12px; color: #888;">${r.primaryArtists}</div>
                         </div>`;
@@ -115,13 +123,16 @@ def index():
                 }
             }
 
-            function selectSearchedSong(name, artist, url) {
+            function selectSearchedSong(name, artist, url, img) {
                 // Decode HTML entities if present
                 const txt = document.createElement('textarea');
                 txt.innerHTML = name;
                 songTitle = txt.value;
                 txt.innerHTML = artist;
                 songArtist = txt.value;
+                songImage = img;
+                songStreamUrl = url;
+                isCustomSong = true;
 
                 document.getElementById('song-title').innerText = songTitle;
                 document.getElementById('song-artist').innerText = songArtist;
@@ -166,7 +177,14 @@ def index():
                 fetch('/label', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: songTitle, category: category })
+                    body: JSON.stringify({ 
+                        title: songTitle, 
+                        artist: songArtist,
+                        category: category,
+                        image: songImage,
+                        streamUrl: songStreamUrl,
+                        isCustom: isCustomSong
+                    })
                 }).then(() => window.location.reload());
             }
         </script>
@@ -186,6 +204,28 @@ def save_label():
     labels[data['title']] = data['category']
     with open(LABELS_FILE, 'w') as f:
         json.dump(labels, f)
+        
+    if data.get('isCustom'):
+        custom_file = 'custom_labeled_songs.json'
+        if os.path.exists(custom_file):
+            with open(custom_file, 'r') as f:
+                custom_songs = json.load(f)
+        else:
+            custom_songs = []
+            
+        custom_songs.append({
+            'Title': data['title'],
+            'Artist': data['artist'],
+            'Category': data['category'],
+            'image': data.get('image'),
+            'streamUrl': data.get('streamUrl'),
+            'Mood': 'Custom',
+            'Genre': 'Custom',
+            'isNew': False
+        })
+        with open(custom_file, 'w') as f:
+            json.dump(custom_songs, f)
+            
     return jsonify({"success": True})
 
 if __name__ == '__main__':

@@ -13,23 +13,41 @@
   
   --glass-bg: rgba(22, 24, 29, 0.4);
   --glass-border: rgba(255, 255, 255, 0.05);
+
+  --sidebar-bg: rgba(22, 24, 29, 0.4);
+  --sidebar-text: #e2e2e9;
+  --sidebar-text-sec: #bbc9cd;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
   
   --font-family: 'Inter', sans-serif;
+  --heading-font: 'Inter', sans-serif;
 }
 
 body.light {
-  --bg-color: #f3f4f6;
+  --bg-color: #fcfaf6;
   --surface-color: #ffffff;
-  --surface-high: #e5e7eb;
-  --primary-color: #3b82f6;
-  --primary-light: #60a5fa;
+  --surface-high: #f3f0e8;
+  --primary-color: #e78a4e;
+  --primary-light: #e78a4e;
   --secondary-color: #8b5cf6;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --border-color: #d1d5db;
+  --text-primary: #292524;
+  --text-secondary: #78716c;
+  --border-color: #e7e5e4;
   
-  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(0, 0, 0, 0.05);
+
+  --sidebar-bg: #1a202c;
+  --sidebar-text: #f8f9fa;
+  --sidebar-text-sec: #9ca3af;
+  --sidebar-border: #2d3748;
+
+  --heading-font: 'Georgia', serif;
+}
+
+body.light h1, body.light h2 {
+  font-family: var(--heading-font);
+  letter-spacing: 0px;
 }
 
 * {
@@ -63,16 +81,21 @@ body {
 .sidebar {
   width: 250px;
   padding: 24px;
-  border-right: 1px solid var(--border-color);
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   gap: 32px;
+  color: var(--sidebar-text);
 }
 
 .logo {
-  font-size: 24px;
+  font-size: 28px;
+  font-family: var(--heading-font);
   font-weight: 700;
-  color: var(--primary-light);
+  color: var(--sidebar-text);
   letter-spacing: -1px;
 }
 
@@ -83,7 +106,7 @@ body {
 }
 
 .nav-link {
-  color: var(--text-secondary);
+  color: var(--sidebar-text-sec);
   text-decoration: none;
   font-size: 16px;
   font-weight: 500;
@@ -93,8 +116,8 @@ body {
 }
 
 .nav-link:hover, .nav-link.active {
-  background-color: rgba(34, 211, 238, 0.1);
-  color: var(--primary-light);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text);
 }
 
 .main-content {

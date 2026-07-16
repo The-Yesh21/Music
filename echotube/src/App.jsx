@@ -65,6 +65,14 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+  }, [theme]);
+
+  useEffect(() => {
     const saved = localStorage.getItem('custom_songs');
     if (saved) {
       setSongs([...JSON.parse(saved), ...categorizedSongsData]);
@@ -197,7 +205,7 @@ function App() {
   return (
     <div className={`app-container ${theme}`}>
       {/* Sidebar */}
-      <div className="sidebar glass">
+      <div className="sidebar">
         <div className="logo">EchoTube</div>
         <div className="nav-links">
           <a href="#" className="nav-link active">Home</a>

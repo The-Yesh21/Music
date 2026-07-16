@@ -14,6 +14,17 @@ with open('labels.json', 'r') as f:
 df['Label'] = df['Title'].map(labels)
 train_df = df[df['Label'].isin(['Happy', 'Lonely', 'Enjoyment'])]
 
+custom_songs = []
+import os
+if os.path.exists('custom_labeled_songs.json'):
+    with open('custom_labeled_songs.json', 'r') as f:
+        custom_songs = json.load(f)
+        
+    if custom_songs:
+        custom_df = pd.DataFrame(custom_songs)
+        custom_df = custom_df.rename(columns={'Category': 'Label'})
+        train_df = pd.concat([train_df, custom_df], ignore_index=True)
+
 if len(train_df) == 0:
     print("Error: No valid labels found!")
     exit(1)
@@ -99,6 +110,8 @@ for track in new_tracks:
 print(f"Added {len(new_songs)} newly discovered songs based on your taste!")
 
 final_data = existing_songs + new_songs
+if 'custom_songs' in locals() and custom_songs:
+    final_data = custom_songs + final_data
 
 with open('echotube/src/categorized_songs.json', 'w') as f:
     json.dump(final_data, f, indent=2)

@@ -175,6 +175,46 @@ button {
   color: var(--text-secondary);
 }
 
+.shuffle-play-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.shuffle-play-btn:active {
+  transform: scale(0.98);
+}
+
+.shuffle-play-btn-happy.active,
+.shuffle-play-btn-happy:hover {
+  border-color: var(--happy-color);
+  background: rgba(234, 179, 8, 0.12);
+}
+
+.shuffle-play-btn-lonely.active,
+.shuffle-play-btn-lonely:hover {
+  border-color: var(--lonely-color);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.shuffle-play-btn-enjoyment.active,
+.shuffle-play-btn-enjoyment:hover {
+  border-color: var(--enjoyment-color);
+  background: rgba(236, 72, 153, 0.12);
+}
+
 .empty-state {
   padding: 48px 16px;
   text-align: center;

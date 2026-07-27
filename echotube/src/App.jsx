@@ -5,6 +5,15 @@ import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
 
+function shuffleArray(items) {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 function formatTime(seconds) {
   if (!seconds || Number.isNaN(seconds)) return '0:00';
   const mins = Math.floor(seconds / 60);
@@ -77,6 +86,7 @@ function App() {
   const [isShuffle, setIsShuffle] = useState(false);
   const [theme, setTheme] = useState('dark');
   const audioRef = useRef(null);
+  const shuffleQueueRef = useRef([]);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -91,6 +101,21 @@ function App() {
   }, []);
 
   const categorySongs = songs.filter(s => s.Category === activeCategory);
+
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+    setIsShuffle(false);
+    shuffleQueueRef.current = [];
+  };
+
+  const playCategoryShuffle = () => {
+    if (categorySongs.length === 0) return;
+
+    const shuffled = shuffleArray(categorySongs);
+    shuffleQueueRef.current = shuffled.slice(1);
+    setIsShuffle(true);
+    searchAndPlay(shuffled[0]);
+  };
 
   const searchAndPlay = async (song, preloadedImgUrl) => {
     try {
@@ -172,13 +197,25 @@ function App() {
 
   const playNext = () => {
     if (!currentSong || categorySongs.length === 0) return;
-    let nextIndex;
+
     if (isShuffle) {
-      nextIndex = Math.floor(Math.random() * categorySongs.length);
-    } else {
-      const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
-      nextIndex = (currentIndex + 1) % categorySongs.length;
+      if (shuffleQueueRef.current.length === 0) {
+        const reshuffled = shuffleArray(
+          categorySongs.filter(s => s.Title !== currentSong.Title)
+        );
+        const queue = reshuffled.length > 0 ? reshuffled : shuffleArray(categorySongs);
+        shuffleQueueRef.current = queue.slice(1);
+        searchAndPlay(queue[0]);
+        return;
+      }
+
+      const nextSong = shuffleQueueRef.current.shift();
+      searchAndPlay(nextSong);
+      return;
     }
+
+    const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
+    const nextIndex = (currentIndex + 1) % categorySongs.length;
     searchAndPlay(categorySongs[nextIndex]);
   };
 
@@ -210,7 +247,7 @@ function App() {
                 role="tab"
                 aria-selected={activeCategory === category}
                 className={`category-btn category-btn-${category.toLowerCase()} ${activeCategory === category ? 'active' : ''}`}
-                onClick={() => setActiveCategory(category)}
+                onClick={() => handleCategoryChange(category)}
               >
                 <span className="category-btn-label">{category}</span>
                 <span className="category-btn-count">{count}</span>
@@ -225,6 +262,19 @@ function App() {
           <h2>{activeCategory}</h2>
           <p>{categorySongs.length} song{categorySongs.length === 1 ? '' : 's'}</p>
         </div>
+
+        {categorySongs.length > 0 && (
+          <button
+            type="button"
+            className={`shuffle-play-btn shuffle-play-btn-${activeCategory.toLowerCase()} ${isShuffle ? 'active' : ''}`}
+            onClick={playCategoryShuffle}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
+            </svg>
+            Play list with shuffle
+          </button>
+        )}
 
         {categorySongs.length === 0 ? (
           <div className="empty-state">
@@ -263,7 +313,12 @@ function App() {
             <button
               type="button"
               className={`icon-btn ${isShuffle ? 'active-shuffle' : ''}`}
-              onClick={() => setIsShuffle(!isShuffle)}
+              onClick={() => {
+                setIsShuffle(prev => {
+                  if (prev) shuffleQueueRef.current = [];
+                  return !prev;
+                });
+              }}
               aria-label="Toggle shuffle"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>

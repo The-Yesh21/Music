@@ -1,1 +1,202 @@
-[{"Title": "Shape of You", "Artist": "", "Category": "Happy", "image": "https://c.saavncdn.com/126/Shape-of-You-English-2017-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/126/da7cde34b008294e181842062530546d_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Khat", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/479/Khat-Hindi-2025-20251130113423-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/479/c99d6d328734f0f034f08a7afc40fe30_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "The Winner Takes It All", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/461/Ritorno-al-futuro-2026-il-nuovo-2016-English-2026-20260619065020-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/461/e84bc31e801e41a1291793845d0449e4_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Rasputin", "Artist": "", "Category": "Enjoyment", "image": "https://c.saavncdn.com/329/Les-Essentiels-English-2002-20200820073015-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/329/092da4371065f1688ceb6843f473dda5_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Be My Baby", "Artist": "", "Category": "Happy", "image": "https://c.saavncdn.com/227/Be-My-Baby-English-2014-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/227/3d638c8ca8ee953884e50812205e8395_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Dracula (JENNIE Remix)", "Artist": "", "Category": "Happy", "image": "https://c.saavncdn.com/246/Dracula-Remix-English-2026-20260203071441-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/246/40b01f5c3cf78f537083efbdef046895_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Love Story", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/888/Wedding-Songs-Summer-English-2026-20260430053514-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/888/e9351da2b3c394106d232d37fe516ef1_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Daylight", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/658/The-Dichotomy-English-2024-20250213003252-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/658/23679bf1c358470e2a57452e63117ca2_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Fairytale", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/521/Fairytales-English-2009-20211028184904-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/521/065dc479aa900e9728404d5aa801e61f_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "A Man Without Love", "Artist": "", "Category": "Lonely", "image": "https://c.saavncdn.com/939/After-Ski-Classics-English-2026-20260416053809-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/939/f61f881a9165f70d550ac03d8434b492_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Bye Bye Bye", "Artist": "", "Category": "Enjoyment", "image": "https://c.saavncdn.com/729/No-Strings-Attached-2003-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/729/71871ab30cb7736ea62fe0ab6a27130d_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}, {"Title": "Starboy", "Artist": "", "Category": "Enjoyment", "image": "https://c.saavncdn.com/396/The-Highlights-English-2021-20240207045714-500x500.jpg", "streamUrl": "https://aac.saavncdn.com/396/b4e570050007b056c662f2a98c9f28ec_320.mp4", "Mood": "Custom", "Genre": "Custom", "isNew": false}]
+[
+  {
+    "Title": "Shape of You",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/126/Shape-of-You-English-2017-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/126/da7cde34b008294e181842062530546d_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Khat",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/479/Khat-Hindi-2025-20251130113423-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/479/c99d6d328734f0f034f08a7afc40fe30_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "The Winner Takes It All",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/461/Ritorno-al-futuro-2026-il-nuovo-2016-English-2026-20260619065020-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/461/e84bc31e801e41a1291793845d0449e4_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Rasputin",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/954/Greatest-Hits-English-1999-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/954/85250987b1b80be7db385aa4cb39205f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Be My Baby",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/227/Be-My-Baby-English-2014-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/227/3d638c8ca8ee953884e50812205e8395_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Dracula (JENNIE Remix)",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/246/Dracula-Remix-English-2026-20260203071441-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/246/40b01f5c3cf78f537083efbdef046895_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Love Story",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/888/Wedding-Songs-Summer-English-2026-20260430053514-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/888/e9351da2b3c394106d232d37fe516ef1_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Daylight",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/658/The-Dichotomy-English-2024-20250213003252-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/658/23679bf1c358470e2a57452e63117ca2_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Fairytale",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/521/Fairytales-English-2009-20211028184904-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/521/065dc479aa900e9728404d5aa801e61f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "A Man Without Love",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/939/After-Ski-Classics-English-2026-20260416053809-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/939/f61f881a9165f70d550ac03d8434b492_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Bye Bye Bye",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/729/No-Strings-Attached-2003-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/729/71871ab30cb7736ea62fe0ab6a27130d_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Starboy",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/396/The-Highlights-English-2021-20240207045714-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/396/b4e570050007b056c662f2a98c9f28ec_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "For A Reason",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/621/P-POP-CULTURE-Punjabi-2025-20250820043757-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/621/59d7b22aeaa69bd8158c1852e0b556d3_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Golden Brown",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/751/The-UA-Singles-1977-1982-English-2009-20190607050948-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/751/c59ac954bffa8ef313ad29211c4741be_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Young And Beautiful",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/571/Young-And-Beautiful-2013-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/571/a767a2dc534b7cd6bcb544dc3b5a2589_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Made In Japan",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/539/The-Complete-Capitol-Singles-1971-1975-English-2019-20230919131254-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/539/5b3555f861cce8cc7436e09a8de99538_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Skyfall",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/632/Skyfall-Full-Length--English-2012-20191009171950-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/632/2c5537d265bb8d9e4722e26e422aa505_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Diet Mountain Dew",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/970/Born-To-Die-The-Paradise-Edition-English-2012-20250805222558-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/970/e74fbbbc31f23a55f1009c36ee74c95a_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Falling In Love",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/846/Raja-Huli-Kannada-2013-20221101135804-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/846/2b8d054d794fc6b41b9817d3e19d8b5f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Until I Found You (Em Beihold Version)",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/648/Until-I-Found-You-English-2022-20240426130801-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/648/35e443770a72b3471859e0ee2037b91e_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  }
+]

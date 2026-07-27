@@ -6,8 +6,25 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 
+def normalize_title(title):
+    return str(title).strip().lower()
+
+
+def dedupe_songs_by_title(songs, title_key='Title'):
+    seen = set()
+    unique = []
+    for song in songs:
+        key = normalize_title(song[title_key])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(song)
+    return unique
+
+
 print("Loading data...")
 df = pd.read_excel('Top100Songs_Filled.xlsx').dropna(subset=['Title'])
+df = df.drop_duplicates(subset=['Title'], keep='first')
 with open('labels.json', 'r') as f:
     labels = json.load(f)
 
@@ -112,6 +129,11 @@ print(f"Added {len(new_songs)} newly discovered songs based on your taste!")
 final_data = existing_songs + new_songs
 if 'custom_songs' in locals() and custom_songs:
     final_data = custom_songs + final_data
+
+before_dedupe = len(final_data)
+final_data = dedupe_songs_by_title(final_data)
+if before_dedupe != len(final_data):
+    print(f"Removed {before_dedupe - len(final_data)} duplicate song(s).")
 
 with open('echotube/src/categorized_songs.json', 'w') as f:
     json.dump(final_data, f, indent=2)

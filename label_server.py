@@ -5,11 +5,45 @@ from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
+CUSTOM_FILE = 'custom_labeled_songs.json'
+
+
+def normalize_title(title):
+    return str(title).strip().lower()
+
+
+def dedupe_songs_by_title(songs, title_key='Title'):
+    seen = set()
+    unique = []
+    for song in songs:
+        key = normalize_title(song[title_key])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(song)
+    return unique
+
+
+def load_custom_songs():
+    if not os.path.exists(CUSTOM_FILE):
+        return []
+    with open(CUSTOM_FILE, 'r') as f:
+        custom_songs = json.load(f)
+    deduped = dedupe_songs_by_title(custom_songs)
+    if len(deduped) != len(custom_songs):
+        with open(CUSTOM_FILE, 'w') as f:
+            json.dump(deduped, f, indent=2)
+        print(f"Removed {len(custom_songs) - len(deduped)} duplicate custom song(s).")
+    return deduped
+
+
 # Load songs from Excel
 df = pd.read_excel('Top100Songs_Filled.xlsx')
 # Only take rows that have Title to avoid NaN
 df = df.dropna(subset=['Title'])
+df = df.drop_duplicates(subset=['Title'], keep='first')
 songs = df[['Title', 'Artist', 'Mood', 'Genre']].to_dict(orient='records')
+load_custom_songs()
 
 LABELS_FILE = 'labels.json'
 if os.path.exists(LABELS_FILE):
@@ -218,14 +252,8 @@ def save_label():
         json.dump(labels, f)
         
     if data.get('isCustom'):
-        custom_file = 'custom_labeled_songs.json'
-        if os.path.exists(custom_file):
-            with open(custom_file, 'r') as f:
-                custom_songs = json.load(f)
-        else:
-            custom_songs = []
-            
-        custom_songs.append({
+        custom_songs = load_custom_songs()
+        new_entry = {
             'Title': data['title'],
             'Artist': data['artist'],
             'Category': data['category'],
@@ -234,9 +262,19 @@ def save_label():
             'Mood': 'Custom',
             'Genre': 'Custom',
             'isNew': False
-        })
-        with open(custom_file, 'w') as f:
-            json.dump(custom_songs, f)
+        }
+        title_key = normalize_title(data['title'])
+        updated = False
+        for i, song in enumerate(custom_songs):
+            if normalize_title(song['Title']) == title_key:
+                custom_songs[i] = new_entry
+                updated = True
+                break
+        if not updated:
+            custom_songs.append(new_entry)
+        custom_songs = dedupe_songs_by_title(custom_songs)
+        with open(CUSTOM_FILE, 'w') as f:
+            json.dump(custom_songs, f, indent=2)
             
     return jsonify({"success": True})
 

@@ -1,9 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import categorizedSongsData from './categorized_songs.json';
 import ThemeToggle from './ThemeToggle';
+import InstallBanner from './InstallBanner';
+import { useMediaSession } from './hooks/useMediaSession';
 import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
+const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
+const REMOVED_SONGS_KEY = 'echotube_removed_songs';
+const SEARCH_API = 'https://jio-blue.vercel.app/api/search/songs';
 
 function shuffleArray(items) {
   const shuffled = [...items];
@@ -21,7 +26,88 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function SongRow({ song, onPlay, isActive }) {
+function songKey(song) {
+  return `${song.Title || ''}::${song.Artist || ''}`.toLowerCase();
+}
+
+function loadCustomSongs() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SONGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(s => CATEGORIES.includes(s.Category)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomSongs(songs) {
+  try {
+    localStorage.setItem(CUSTOM_SONGS_KEY, JSON.stringify(songs));
+  } catch (err) {
+    console.error('Failed to save custom songs', err);
+  }
+}
+
+function loadRemovedSongKeys() {
+  try {
+    const raw = localStorage.getItem(REMOVED_SONGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRemovedSongKeys(keys) {
+  try {
+    localStorage.setItem(REMOVED_SONGS_KEY, JSON.stringify(keys));
+  } catch (err) {
+    console.error('Failed to save removed songs', err);
+  }
+}
+
+function getBestImage(images) {
+  if (!Array.isArray(images) || images.length === 0) return null;
+  return images.find(img => img.quality === '500x500')?.url || images[0]?.url || null;
+}
+
+function getBestStreamUrl(downloadUrls) {
+  if (!Array.isArray(downloadUrls) || downloadUrls.length === 0) return null;
+
+  const ranked = [...downloadUrls].sort((a, b) => {
+    const aBitrate = Number.parseInt(String(a.quality).replace(/\D/g, ''), 10) || 0;
+    const bBitrate = Number.parseInt(String(b.quality).replace(/\D/g, ''), 10) || 0;
+    return bBitrate - aBitrate;
+  });
+
+  const preferred = ranked.find(url => /320/i.test(String(url.quality))) || ranked[0];
+  return preferred?.url || null;
+}
+
+function getTrackArtists(track) {
+  if (track.artists?.primary?.length) {
+    return track.artists.primary.map(a => a.name).join(', ');
+  }
+  return track.primaryArtists || track.artists?.all?.map(a => a.name).join(', ') || 'Unknown artist';
+}
+
+function mapApiTrackToSong(track, category) {
+  return {
+    Title: track.name || track.title || 'Unknown',
+    Artist: getTrackArtists(track),
+    Category: category,
+    Mood: '',
+    Genre: track.language || '',
+    image: getBestImage(track.image),
+    streamUrl: getBestStreamUrl(track.downloadUrl),
+    isNew: true,
+    apiId: track.id,
+  };
+}
+
+function SongRow({ song, onPlay, onRemove, isActive }) {
   const [imgUrl, setImgUrl] = useState(song.image || null);
 
   useEffect(() => {
@@ -33,19 +119,17 @@ function SongRow({ song, onPlay, isActive }) {
     const fetchThumbnail = async () => {
       try {
         let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-        let res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+        let res = await fetch(`${SEARCH_API}?query=${query}`);
         let data = await res.json();
 
         if (!data.success || !data.data || data.data.results.length === 0) {
           query = encodeURIComponent(song.Title);
-          res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+          res = await fetch(`${SEARCH_API}?query=${query}`);
           data = await res.json();
         }
 
         if (data.success && data.data && data.data.results.length > 0) {
-          const track = data.data.results[0];
-          const bestImg = track.image.find(img => img.quality === '500x500')?.url || track.image[0]?.url;
-          setImgUrl(bestImg);
+          setImgUrl(getBestImage(data.data.results[0].image));
         }
       } catch (err) {
         console.error('Failed to fetch thumbnail for', song.Title);
@@ -56,20 +140,54 @@ function SongRow({ song, onPlay, isActive }) {
   }, [song]);
 
   return (
-    <button
-      type="button"
-      className={`song-row ${isActive ? 'active' : ''}`}
-      onClick={() => onPlay(song, imgUrl)}
-    >
+    <div className={`song-row ${isActive ? 'active' : ''}`}>
+      <button
+        type="button"
+        className="song-row-main"
+        onClick={() => onPlay(song, imgUrl)}
+      >
+        <div className="song-row-art">
+          {imgUrl ? <img src={imgUrl} alt={song.Title} /> : <div className="song-row-art-placeholder" />}
+          <span className="song-row-play">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          </span>
+        </div>
+        <div className="song-row-info">
+          <h3>{song.Title}</h3>
+          <p>{song.Artist || 'Unknown artist'}</p>
+        </div>
+      </button>
+      <button
+        type="button"
+        className="song-remove-btn"
+        onClick={() => onRemove(song)}
+        aria-label={`Remove ${song.Title}`}
+        title="Remove from playlist"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function SearchResultRow({ track, onSelect }) {
+  const image = getBestImage(track.image);
+  const title = track.name || track.title || 'Unknown';
+  const artist = getTrackArtists(track);
+
+  return (
+    <button type="button" className="song-row search-result-row" onClick={() => onSelect(track)}>
       <div className="song-row-art">
-        {imgUrl ? <img src={imgUrl} alt={song.Title} /> : <div className="song-row-art-placeholder" />}
+        {image ? <img src={image} alt={title} /> : <div className="song-row-art-placeholder" />}
         <span className="song-row-play">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         </span>
       </div>
       <div className="song-row-info">
-        <h3>{song.Title}</h3>
-        <p>{song.Artist || 'Unknown artist'}</p>
+        <h3>{title}</h3>
+        <p>{artist}</p>
       </div>
     </button>
   );
@@ -85,8 +203,14 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [isShuffle, setIsShuffle] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [pendingTrack, setPendingTrack] = useState(null);
   const audioRef = useRef(null);
   const shuffleQueueRef = useRef([]);
+  const searchAbortRef = useRef(null);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -97,15 +221,74 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    setSongs(categorizedSongsData.filter(s => CATEGORIES.includes(s.Category)));
+    const removedKeys = new Set(loadRemovedSongKeys());
+    const baseSongs = categorizedSongsData
+      .filter(s => CATEGORIES.includes(s.Category))
+      .filter(s => !removedKeys.has(songKey(s)));
+    const customSongs = loadCustomSongs().filter(s => !removedKeys.has(songKey(s)));
+    const customKeys = new Set(customSongs.map(songKey));
+    const merged = [
+      ...customSongs,
+      ...baseSongs.filter(s => !customKeys.has(songKey(s))),
+    ];
+    setSongs(merged);
   }, []);
 
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      setSearchError('');
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      setIsSearching(true);
+      setSearchError('');
+
+      try {
+        const res = await fetch(
+          `${SEARCH_API}?query=${encodeURIComponent(query)}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+
+        if (data.success && data.data?.results?.length) {
+          setSearchResults(data.data.results);
+        } else {
+          setSearchResults([]);
+          setSearchError('No songs found. Try another search.');
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error(err);
+        setSearchResults([]);
+        setSearchError('Search failed. Please try again.');
+      } finally {
+        if (!controller.signal.aborted) setIsSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+    };
+  }, [searchQuery]);
+
   const categorySongs = songs.filter(s => s.Category === activeCategory);
+  const isSearchMode = searchQuery.trim().length > 0;
 
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
     setIsShuffle(false);
     shuffleQueueRef.current = [];
+    setSearchQuery('');
+    setPendingTrack(null);
   };
 
   const playCategoryShuffle = () => {
@@ -130,24 +313,29 @@ function App() {
       }
 
       let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-      let res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+      let res = await fetch(`${SEARCH_API}?query=${query}`);
       let data = await res.json();
 
       if (!data.success || !data.data || data.data.results.length === 0) {
         query = encodeURIComponent(song.Title);
-        res = await fetch(`https://jio-blue.vercel.app/api/search/songs?query=${query}`);
+        res = await fetch(`${SEARCH_API}?query=${query}`);
         data = await res.json();
       }
 
       if (data.success && data.data && data.data.results.length > 0) {
         const track = data.data.results[0];
-        const downloadUrl = track.downloadUrl.find(url => url.quality === '320kbps') || track.downloadUrl[0];
+        const streamUrl = getBestStreamUrl(track.downloadUrl);
+
+        if (!streamUrl) {
+          alert('No playable stream found for this song');
+          return;
+        }
 
         setCurrentSong({
           ...song,
           apiData: track,
-          streamUrl: downloadUrl.url,
-          image: preloadedImgUrl || track.image.find(img => img.quality === '500x500')?.url || track.image[0]?.url
+          streamUrl,
+          image: preloadedImgUrl || getBestImage(track.image)
         });
 
         setIsPlaying(true);
@@ -157,6 +345,96 @@ function App() {
     } catch (err) {
       console.error(err);
       alert('Failed to fetch song from JioSaavn');
+    }
+  };
+
+  const previewSearchTrack = (track) => {
+    const streamUrl = getBestStreamUrl(track.downloadUrl);
+    if (!streamUrl) {
+      alert('No playable preview found for this song');
+      return;
+    }
+
+    const previewSong = mapApiTrackToSong(track, activeCategory);
+    setPendingTrack(track);
+    setIsShuffle(false);
+    shuffleQueueRef.current = [];
+    setCurrentSong({
+      ...previewSong,
+      apiData: track,
+      streamUrl,
+    });
+    setIsPlaying(true);
+  };
+
+  const addPendingToCategory = (category) => {
+    if (!pendingTrack) return;
+
+    const newSong = mapApiTrackToSong(pendingTrack, category);
+    if (!newSong.streamUrl) {
+      alert('No playable stream found for this song');
+      return;
+    }
+
+    const key = songKey(newSong);
+    const removedKeys = loadRemovedSongKeys().filter(k => k !== key);
+    saveRemovedSongKeys(removedKeys);
+
+    setSongs(prev => {
+      const withoutDupes = prev.filter(s => {
+        if (newSong.apiId && s.apiId) return s.apiId !== newSong.apiId;
+        return songKey(s) !== key;
+      });
+      const next = [newSong, ...withoutDupes];
+      saveCustomSongs(next.filter(s => s.isNew || s.apiId));
+      return next;
+    });
+
+    setActiveCategory(category);
+    setIsShuffle(false);
+    shuffleQueueRef.current = [];
+    setCurrentSong(prev => (prev ? { ...prev, ...newSong, Category: category } : newSong));
+    setPendingTrack(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const removeSong = (song) => {
+    const key = songKey(song);
+    const wasPlaying = currentSong && songKey(currentSong) === key;
+
+    setSongs(prev => {
+      const next = prev.filter(s => songKey(s) !== key);
+      saveCustomSongs(next.filter(s => s.isNew || s.apiId));
+
+      const removedKeys = new Set(loadRemovedSongKeys());
+      removedKeys.add(key);
+      saveRemovedSongKeys([...removedKeys]);
+
+      return next;
+    });
+
+    shuffleQueueRef.current = shuffleQueueRef.current.filter(s => songKey(s) !== key);
+
+    if (wasPlaying) {
+      const remainingInCategory = songs.filter(
+        s => s.Category === activeCategory && songKey(s) !== key
+      );
+
+      if (remainingInCategory.length > 0) {
+        const currentIndex = songs
+          .filter(s => s.Category === activeCategory)
+          .findIndex(s => songKey(s) === key);
+        const nextSong = remainingInCategory[currentIndex % remainingInCategory.length]
+          || remainingInCategory[0];
+        searchAndPlay(nextSong);
+      } else {
+        setCurrentSong(null);
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
+        setDuration(0);
+      }
     }
   };
 
@@ -215,19 +493,62 @@ function App() {
     }
 
     const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
-    const nextIndex = (currentIndex + 1) % categorySongs.length;
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % categorySongs.length;
     searchAndPlay(categorySongs[nextIndex]);
   };
 
   const playPrev = () => {
     if (!currentSong || categorySongs.length === 0) return;
     const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
-    const prevIndex = (currentIndex - 1 + categorySongs.length) % categorySongs.length;
+    const prevIndex = currentIndex === -1
+      ? 0
+      : (currentIndex - 1 + categorySongs.length) % categorySongs.length;
     searchAndPlay(categorySongs[prevIndex]);
   };
 
+  const handleEnded = () => {
+    if (pendingTrack) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+      return;
+    }
+    playNext();
+  };
+
+  const handlePlay = useCallback(() => {
+    if (currentSong) setIsPlaying(true);
+  }, [currentSong]);
+
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
+  useMediaSession({
+    currentSong,
+    isPlaying,
+    activeCategory,
+    currentTime,
+    duration,
+    onPlay: handlePlay,
+    onPause: handlePause,
+    onNext: playNext,
+    onPrev: playPrev,
+  });
+
   return (
-    <div className={`app-container ${theme}`}>
+    <div
+      className={`app-container ${theme} mood-${activeCategory.toLowerCase()} ${isPlaying ? 'is-playing' : ''}`}
+    >
+      <div className="ambient-layer" aria-hidden="true">
+        <span className="ambient-orb ambient-orb-a" />
+        <span className="ambient-orb ambient-orb-b" />
+        <span className="ambient-orb ambient-orb-c" />
+        <span className="ambient-wash" />
+      </div>
+
+      <InstallBanner />
       <header className="app-header">
         <div className="app-header-top">
           <div>
@@ -235,6 +556,33 @@ function App() {
             <h1 className="app-title">EchoTube</h1>
           </div>
           <ThemeToggle theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+        </div>
+
+        <div className="search-bar">
+          <svg className="search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Search for a song…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search for a song"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => {
+                setSearchQuery('');
+                setPendingTrack(null);
+              }}
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         <div className="category-buttons" role="tablist" aria-label="Mood categories">
@@ -258,49 +606,138 @@ function App() {
       </header>
 
       <main className="main-content">
-        <div className="section-header">
-          <h2>{activeCategory}</h2>
-          <p>{categorySongs.length} song{categorySongs.length === 1 ? '' : 's'}</p>
-        </div>
+        {isSearchMode ? (
+          <>
+            <div className="section-header">
+              <h2>Search results</h2>
+              <p>
+                {isSearching
+                  ? 'Searching…'
+                  : `${searchResults.length} result${searchResults.length === 1 ? '' : 's'}`}
+              </p>
+            </div>
 
-        {categorySongs.length > 0 && (
-          <button
-            type="button"
-            className={`shuffle-play-btn shuffle-play-btn-${activeCategory.toLowerCase()} ${isShuffle ? 'active' : ''}`}
-            onClick={playCategoryShuffle}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
-            </svg>
-            Play list with shuffle
-          </button>
-        )}
-
-        {categorySongs.length === 0 ? (
-          <div className="empty-state">
-            <p>No songs in this category yet.</p>
-          </div>
+            {isSearching && searchResults.length === 0 ? (
+              <div className="empty-state">
+                <p>Searching for songs…</p>
+              </div>
+            ) : searchError ? (
+              <div className="empty-state">
+                <p>{searchError}</p>
+              </div>
+            ) : (
+              <div className="song-list">
+                {searchResults.map((track) => (
+                  <SearchResultRow
+                    key={track.id || `${track.name}-${track.primaryArtists}`}
+                    track={track}
+                    onSelect={previewSearchTrack}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="song-list">
-            {categorySongs.map((song, idx) => (
-              <SongRow
-                key={`${song.Title}-${idx}`}
-                song={song}
-                onPlay={searchAndPlay}
-                isActive={currentSong?.Title === song.Title}
-              />
-            ))}
-          </div>
+          <>
+            <div className="section-header">
+              <h2>{activeCategory}</h2>
+              <p>{categorySongs.length} song{categorySongs.length === 1 ? '' : 's'}</p>
+            </div>
+
+            {categorySongs.length > 0 && (
+              <button
+                type="button"
+                className={`shuffle-play-btn shuffle-play-btn-${activeCategory.toLowerCase()} ${isShuffle ? 'active' : ''}`}
+                onClick={playCategoryShuffle}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
+                </svg>
+                Play list with shuffle
+              </button>
+            )}
+
+            {categorySongs.length === 0 ? (
+              <div className="empty-state">
+                <p>No songs in this category yet.</p>
+              </div>
+            ) : (
+              <div className="song-list">
+                {categorySongs.map((song, idx) => (
+                  <SongRow
+                    key={`${song.Title}-${song.Artist}-${idx}`}
+                    song={song}
+                    onPlay={searchAndPlay}
+                    onRemove={removeSong}
+                    isActive={currentSong?.Title === song.Title}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      <div className="bottom-player glass">
+      {pendingTrack && (
+        <div className="category-modal-backdrop" role="presentation">
+          <div
+            className="category-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="category-modal-title"
+          >
+            <div className="category-modal-track">
+              {getBestImage(pendingTrack.image) ? (
+                <img
+                  src={getBestImage(pendingTrack.image)}
+                  alt=""
+                  className="category-modal-art"
+                />
+              ) : (
+                <div className="category-modal-art" />
+              )}
+              <div>
+                <p className="category-modal-eyebrow">Previewing</p>
+                <h3 id="category-modal-title">{pendingTrack.name || pendingTrack.title}</h3>
+                <p>{getTrackArtists(pendingTrack)}</p>
+              </div>
+            </div>
+
+            <p className="category-modal-prompt">Add this song to which category?</p>
+
+            <div className="category-modal-actions">
+              {CATEGORIES.map(category => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`category-modal-btn category-modal-btn-${category.toLowerCase()}`}
+                  onClick={() => addPendingToCategory(category)}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="category-modal-dismiss"
+              onClick={() => setPendingTrack(null)}
+            >
+              Keep previewing without saving
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`bottom-player glass ${isPlaying ? 'playing' : ''}`}>
         <div className="now-playing-info">
-          {currentSong?.image ? (
-            <img src={currentSong.image} alt="cover" className="now-playing-img" />
-          ) : (
-            <div className="now-playing-img" />
-          )}
+          <div className={`now-playing-art ${isPlaying ? 'breathing' : ''}`}>
+            {currentSong?.image ? (
+              <img src={currentSong.image} alt="cover" className="now-playing-img" />
+            ) : (
+              <div className="now-playing-img" />
+            )}
+          </div>
 
           <div className="song-info">
             <h3>{currentSong ? currentSong.Title : 'No track playing'}</h3>
@@ -351,9 +788,11 @@ function App() {
       <audio
         ref={audioRef}
         src={currentSong?.streamUrl}
+        playsInline
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
-        onEnded={playNext}
+        onEnded={handleEnded}
       />
     </div>
   );

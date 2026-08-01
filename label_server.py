@@ -6,6 +6,95 @@ from flask import Flask, request, jsonify, render_template_string
 app = Flask(__name__)
 
 CUSTOM_FILE = 'custom_labeled_songs.json'
+SONGS_FILE = 'echotube/src/categorized_songs.json'
+VALID_CATEGORIES = {'Happy', 'Lonely', 'Enjoyment'}
+
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+
+def song_key(song):
+    return f"{normalize_title(song.get('Title', ''))}::{normalize_title(song.get('Artist', ''))}"
+
+
+def load_json(path, default=None):
+    if not os.path.exists(path):
+        return default
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_json(path, data):
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+
+def dedupe_songs(songs):
+    seen_keys = set()
+    seen_api_ids = set()
+    unique = []
+    for song in songs:
+        key = song_key(song)
+        api_id = song.get('apiId')
+        if key in seen_keys:
+            continue
+        if api_id and api_id in seen_api_ids:
+            continue
+        seen_keys.add(key)
+        if api_id:
+            seen_api_ids.add(api_id)
+        unique.append(song)
+    return unique
+
+
+@app.route('/api/songs', methods=['POST', 'OPTIONS'])
+def add_song():
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    data = request.json or {}
+    if not data.get('Title') or not data.get('Category'):
+        return jsonify({'success': False, 'error': 'Title and Category are required'}), 400
+
+    category = data['Category']
+    if category not in VALID_CATEGORIES:
+        return jsonify({'success': False, 'error': 'Invalid category'}), 400
+
+    song = {
+        'Title': data['Title'],
+        'Artist': data.get('Artist', ''),
+        'Category': category,
+        'Mood': data.get('Mood', 'Custom'),
+        'Genre': data.get('Genre', 'Custom'),
+        'image': data.get('image'),
+        'streamUrl': data.get('streamUrl'),
+        'isNew': False,
+    }
+    if data.get('apiId'):
+        song['apiId'] = data['apiId']
+
+    key = song_key(song)
+
+    # 1) Persist to the file the app loads so the song survives app restarts.
+    songs = load_json(SONGS_FILE, [])
+    songs = [s for s in songs if song_key(s) != key and (not s.get('apiId') or s.get('apiId') != song.get('apiId'))]
+    songs.insert(0, song)
+    songs = dedupe_songs(songs)
+    save_json(SONGS_FILE, songs)
+
+    # 2) Also keep it in the custom songs file so ML/sync re-runs don't drop it.
+    customs = load_json(CUSTOM_FILE, [])
+    customs = [s for s in customs if song_key(s) != key]
+    customs.insert(0, song)
+    customs = dedupe_songs(customs)
+    save_json(CUSTOM_FILE, customs)
+
+    return jsonify({'success': True, 'song': song})
 
 
 def normalize_title(title):

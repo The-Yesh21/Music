@@ -9,6 +9,13 @@ const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
 const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
 const REMOVED_SONGS_KEY = 'echotube_removed_songs';
 const SEARCH_API = 'https://jio-blue.vercel.app/api/search/songs';
+// Cloud persistence: Supabase via the Vercel serverless function at /api/songs.
+// The relative path works on the deployed site and with `vercel dev`; when
+// running plain `npm run dev` it falls back to localStorage only.
+const CLOUD_API = '/api/songs';
+// Optional local Flask server (label_server.py): keeps categorized_songs.json in
+// sync when developing on this machine.
+const LOCAL_FILE_API = 'http://127.0.0.1:5000/api/songs';
 
 function shuffleArray(items) {
   const shuffled = [...items];
@@ -28,6 +35,55 @@ function formatTime(seconds) {
 
 function songKey(song) {
   return `${song.Title || ''}::${song.Artist || ''}`.toLowerCase();
+}
+
+function dedupeSongs(songs) {
+  const seenKeys = new Set();
+  const seenApiIds = new Set();
+  const unique = [];
+  for (const song of songs) {
+    const key = songKey(song);
+    const apiId = song.apiId;
+    if (seenKeys.has(key)) continue;
+    if (apiId && seenApiIds.has(apiId)) continue;
+    seenKeys.add(key);
+    if (apiId) seenApiIds.add(apiId);
+    unique.push(song);
+  }
+  return unique;
+}
+
+async function postToCloud(song) {
+  try {
+    const res = await fetch(CLOUD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(song),
+    });
+    if (!res.ok) {
+      console.warn('Failed to persist song to cloud', res.status);
+    }
+  } catch (err) {
+    console.warn('Cloud persistence unavailable, saved to localStorage only', err);
+  }
+}
+
+async function postToLocalFile(song) {
+  // Only meaningful when developing on this machine — skip on the deployed site.
+  const host = window.location.hostname;
+  if (host !== 'localhost' && host !== '127.0.0.1') return;
+  try {
+    const res = await fetch(LOCAL_FILE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(song),
+    });
+    if (!res.ok) {
+      console.warn('Failed to persist song to local file', res.status);
+    }
+  } catch {
+    // Local dev server not running — cloud/localStorage already cover this.
+  }
 }
 
 function loadCustomSongs() {
@@ -226,12 +282,47 @@ function App() {
       .filter(s => CATEGORIES.includes(s.Category))
       .filter(s => !removedKeys.has(songKey(s)));
     const customSongs = loadCustomSongs().filter(s => !removedKeys.has(songKey(s)));
-    const customKeys = new Set(customSongs.map(songKey));
-    const merged = [
-      ...customSongs,
-      ...baseSongs.filter(s => !customKeys.has(songKey(s))),
-    ];
+    const merged = dedupeSongs([...customSongs, ...baseSongs]);
     setSongs(merged);
+
+    // Fetch songs saved in the cloud (Supabase) so songs added on any device
+    // — including the deployed app on your phone — show up here too.
+    const fetchCloudSongs = async () => {
+      try {
+        const res = await fetch(CLOUD_API);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.songs)) return;
+        const cloudSongs = data.songs
+          .filter(s => CATEGORIES.includes(s.Category))
+          .filter(s => !removedKeys.has(songKey(s)));
+
+        // Sync any local custom songs up to the cloud so they reach other devices.
+        const cloudKeys = new Set(cloudSongs.map(songKey));
+        customSongs.forEach(s => {
+          if (!cloudKeys.has(songKey(s))) postToCloud(s);
+        });
+
+        // Merge: newly-added cloud-only songs appear at the top, while existing
+        // songs keep their familiar local/base order. Removed songs stay hidden.
+        setSongs(prev => {
+          const prevKeys = new Set(prev.map(songKey));
+          const newCloudSongs = cloudSongs.filter(s => !prevKeys.has(songKey(s)));
+          return dedupeSongs([...newCloudSongs, ...prev]);
+        });
+
+        // Cache cloud custom songs locally so they survive a temporary outage.
+        // Read fresh from localStorage (not the closure) so a song added while
+        // the fetch was in flight isn't dropped from the cache.
+        const cloudCustom = cloudSongs.filter(s => s.isNew || s.apiId);
+        if (cloudCustom.length) {
+          saveCustomSongs(dedupeSongs([...cloudCustom, ...loadCustomSongs()]));
+        }
+      } catch (err) {
+        console.warn('Could not fetch cloud songs, using local data only', err);
+      }
+    };
+    fetchCloudSongs();
   }, []);
 
   useEffect(() => {
@@ -381,19 +472,23 @@ function App() {
     saveRemovedSongKeys(removedKeys);
 
     setSongs(prev => {
-      const withoutDupes = prev.filter(s => {
-        if (newSong.apiId && s.apiId) return s.apiId !== newSong.apiId;
-        return songKey(s) !== key;
-      });
-      const next = [newSong, ...withoutDupes];
+      const withoutDupes = dedupeSongs(prev.filter(s => songKey(s) !== key));
+      const next = dedupeSongs([newSong, ...withoutDupes]);
       saveCustomSongs(next.filter(s => s.isNew || s.apiId));
       return next;
     });
+
+    // Persist to the cloud (Supabase) so the song survives app restarts and
+    // shows up on every device. Also best-effort write to the local Flask server
+    // so categorized_songs.json stays in sync when developing locally.
+    postToCloud(newSong);
+    postToLocalFile(newSong);
 
     setActiveCategory(category);
     setIsShuffle(false);
     shuffleQueueRef.current = [];
     setCurrentSong(prev => (prev ? { ...prev, ...newSong, Category: category } : newSong));
+    setIsPlaying(true);
     setPendingTrack(null);
     setSearchQuery('');
     setSearchResults([]);

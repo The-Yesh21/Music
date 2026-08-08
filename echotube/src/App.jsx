@@ -7,15 +7,9 @@ import { searchSongs, getBestImage, getBestStreamUrl, getTrackArtists, mapApiTra
 import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
-const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
-const REMOVED_SONGS_KEY = 'echotube_removed_songs';
 // Cloud persistence: Supabase via the Vercel serverless function at /api/songs.
-// The relative path works on the deployed site and with `vercel dev`; when
-// running plain `npm run dev` it falls back to localStorage only.
+// The relative path works on the deployed site and with `vercel dev`.
 const CLOUD_API = '/api/songs';
-// Optional local Flask server (label_server.py): keeps categorized_songs.json in
-// sync when developing on this machine.
-const LOCAL_FILE_API = 'http://127.0.0.1:5000/api/songs';
 
 function shuffleArray(items) {
   const shuffled = [...items];
@@ -64,21 +58,19 @@ function SongRow({ song, onPlay, onRemove, isActive }) {
 
     const fetchThumbnail = async () => {
       try {
-        let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-        let res = await fetch(`${SEARCH_API}?query=${query}`);
-        let data = await res.json();
-
-        if (!data.success || !data.data || data.data.results.length === 0) {
-          query = encodeURIComponent(song.Title);
-          res = await fetch(`${SEARCH_API}?query=${query}`);
-          data = await res.json();
+        const results = await searchSongs(`${song.Title} ${song.Artist}`);
+        
+        let track = results[0];
+        if (!track) {
+          const fallbackResults = await searchSongs(song.Title);
+          track = fallbackResults[0];
         }
 
-        if (data.success && data.data && data.data.results.length > 0) {
-          setImgUrl(getBestImage(data.data.results[0].image));
+        if (track) {
+          setImgUrl(getBestImage(track.image));
         }
       } catch (err) {
-        console.error('Failed to fetch thumbnail for', song.Title);
+        console.error('Failed to fetch thumbnail for', song.Title, err);
       }
     };
 
@@ -233,20 +225,17 @@ function App() {
       setSearchError('');
 
       try {
-        const res = await fetch(
-          `${SEARCH_API}?query=${encodeURIComponent(query)}`,
-          { signal: controller.signal }
-        );
-        const data = await res.json();
-
-        if (data.success && data.data?.results?.length) {
-          setSearchResults(data.data.results);
+        const results = await searchSongs(query);
+        if (controller.signal.aborted) return;
+        
+        if (results.length) {
+          setSearchResults(results);
         } else {
           setSearchResults([]);
           setSearchError('No songs found. Try another search.');
         }
       } catch (err) {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError' || controller.signal.aborted) return;
         console.error(err);
         setSearchResults([]);
         setSearchError('Search failed. Please try again.');
@@ -293,18 +282,15 @@ function App() {
         return;
       }
 
-      let query = encodeURIComponent(`${song.Title} ${song.Artist}`);
-      let res = await fetch(`${SEARCH_API}?query=${query}`);
-      let data = await res.json();
-
-      if (!data.success || !data.data || data.data.results.length === 0) {
-        query = encodeURIComponent(song.Title);
-        res = await fetch(`${SEARCH_API}?query=${query}`);
-        data = await res.json();
+      const results = await searchSongs(`${song.Title} ${song.Artist}`);
+      
+      let track = results[0];
+      if (!track) {
+        const fallbackResults = await searchSongs(song.Title);
+        track = fallbackResults[0];
       }
 
-      if (data.success && data.data && data.data.results.length > 0) {
-        const track = data.data.results[0];
+      if (track) {
         const streamUrl = getBestStreamUrl(track.downloadUrl);
 
         if (!streamUrl) {

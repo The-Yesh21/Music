@@ -3,12 +3,12 @@ import categorizedSongsData from './categorized_songs.json';
 import ThemeToggle from './ThemeToggle';
 import InstallBanner from './InstallBanner';
 import { useMediaSession } from './hooks/useMediaSession';
+import { searchSongs, getBestImage, getBestStreamUrl, getTrackArtists, mapApiTrackToSong } from './api/jiosaavn';
 import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
 const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
 const REMOVED_SONGS_KEY = 'echotube_removed_songs';
-const SEARCH_API = 'https://jio-blue.vercel.app/api/search/songs';
 // Cloud persistence: Supabase via the Vercel serverless function at /api/songs.
 // The relative path works on the deployed site and with `vercel dev`; when
 // running plain `npm run dev` it falls back to localStorage only.
@@ -51,116 +51,6 @@ function dedupeSongs(songs) {
     unique.push(song);
   }
   return unique;
-}
-
-async function postToCloud(song) {
-  try {
-    const res = await fetch(CLOUD_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(song),
-    });
-    if (!res.ok) {
-      console.warn('Failed to persist song to cloud', res.status);
-    }
-  } catch (err) {
-    console.warn('Cloud persistence unavailable, saved to localStorage only', err);
-  }
-}
-
-async function postToLocalFile(song) {
-  // Only meaningful when developing on this machine — skip on the deployed site.
-  const host = window.location.hostname;
-  if (host !== 'localhost' && host !== '127.0.0.1') return;
-  try {
-    const res = await fetch(LOCAL_FILE_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(song),
-    });
-    if (!res.ok) {
-      console.warn('Failed to persist song to local file', res.status);
-    }
-  } catch {
-    // Local dev server not running — cloud/localStorage already cover this.
-  }
-}
-
-function loadCustomSongs() {
-  try {
-    const raw = localStorage.getItem(CUSTOM_SONGS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(s => CATEGORIES.includes(s.Category)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomSongs(songs) {
-  try {
-    localStorage.setItem(CUSTOM_SONGS_KEY, JSON.stringify(songs));
-  } catch (err) {
-    console.error('Failed to save custom songs', err);
-  }
-}
-
-function loadRemovedSongKeys() {
-  try {
-    const raw = localStorage.getItem(REMOVED_SONGS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveRemovedSongKeys(keys) {
-  try {
-    localStorage.setItem(REMOVED_SONGS_KEY, JSON.stringify(keys));
-  } catch (err) {
-    console.error('Failed to save removed songs', err);
-  }
-}
-
-function getBestImage(images) {
-  if (!Array.isArray(images) || images.length === 0) return null;
-  return images.find(img => img.quality === '500x500')?.url || images[0]?.url || null;
-}
-
-function getBestStreamUrl(downloadUrls) {
-  if (!Array.isArray(downloadUrls) || downloadUrls.length === 0) return null;
-
-  const ranked = [...downloadUrls].sort((a, b) => {
-    const aBitrate = Number.parseInt(String(a.quality).replace(/\D/g, ''), 10) || 0;
-    const bBitrate = Number.parseInt(String(b.quality).replace(/\D/g, ''), 10) || 0;
-    return bBitrate - aBitrate;
-  });
-
-  const preferred = ranked.find(url => /320/i.test(String(url.quality))) || ranked[0];
-  return preferred?.url || null;
-}
-
-function getTrackArtists(track) {
-  if (track.artists?.primary?.length) {
-    return track.artists.primary.map(a => a.name).join(', ');
-  }
-  return track.primaryArtists || track.artists?.all?.map(a => a.name).join(', ') || 'Unknown artist';
-}
-
-function mapApiTrackToSong(track, category) {
-  return {
-    Title: track.name || track.title || 'Unknown',
-    Artist: getTrackArtists(track),
-    Category: category,
-    Mood: '',
-    Genre: track.language || '',
-    image: getBestImage(track.image),
-    streamUrl: getBestStreamUrl(track.downloadUrl),
-    isNew: true,
-    apiId: track.id,
-  };
 }
 
 function SongRow({ song, onPlay, onRemove, isActive }) {

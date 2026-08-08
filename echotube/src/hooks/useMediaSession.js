@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 export function useMediaSession({
   currentSong,
@@ -13,6 +13,27 @@ export function useMediaSession({
 }) {
   const handlersRef = useRef({ onPlay, onPause, onNext, onPrev });
   handlersRef.current = { onPlay, onPause, onNext, onPrev };
+  const wakeLockRef = useRef(null);
+
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        wakeLockRef.current.addEventListener('release', () => {
+          wakeLockRef.current = null;
+        });
+      } catch (err) {
+        console.warn('Wake Lock failed:', err.name, err.message);
+      }
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
@@ -51,7 +72,13 @@ export function useMediaSession({
     }
 
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-  }, [currentSong, isPlaying, activeCategory]);
+
+    if (isPlaying) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [currentSong, isPlaying, activeCategory, requestWakeLock, releaseWakeLock]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong || !duration) return;
@@ -66,4 +93,16 @@ export function useMediaSession({
       // Some browsers reject invalid position state during track load.
     }
   }, [currentSong, currentTime, duration]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && wakeLockRef.current === null && isPlaying) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isPlaying, requestWakeLock]);
+
+  return { requestWakeLock, releaseWakeLock };
 }

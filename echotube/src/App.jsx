@@ -7,9 +7,15 @@ import { searchSongs, getBestImage, getBestStreamUrl, getTrackArtists, mapApiTra
 import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
+const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
+const REMOVED_SONGS_KEY = 'echotube_removed_songs';
 // Cloud persistence: Supabase via the Vercel serverless function at /api/songs.
-// The relative path works on the deployed site and with `vercel dev`.
+// The relative path works on the deployed site and with `vercel dev`; when
+// running plain `npm run dev` it falls back to localStorage only.
 const CLOUD_API = '/api/songs';
+// Optional local Flask server (label_server.py): keeps categorized_songs.json in
+// sync when developing on this machine.
+const LOCAL_FILE_API = 'http://127.0.0.1:5000/api/songs';
 
 function shuffleArray(items) {
   const shuffled = [...items];
@@ -45,6 +51,77 @@ function dedupeSongs(songs) {
     unique.push(song);
   }
   return unique;
+}
+
+async function postToCloud(song) {
+  try {
+    const res = await fetch(CLOUD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(song),
+    });
+    if (!res.ok) {
+      console.warn('Failed to persist song to cloud', res.status);
+    }
+  } catch (err) {
+    console.warn('Cloud persistence unavailable, saved to localStorage only', err);
+  }
+}
+
+async function postToLocalFile(song) {
+  // Only meaningful when developing on this machine — skip on the deployed site.
+  const host = window.location.hostname;
+  if (host !== 'localhost' && host !== '127.0.0.1') return;
+  try {
+    const res = await fetch(LOCAL_FILE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(song),
+    });
+    if (!res.ok) {
+      console.warn('Failed to persist song to local file', res.status);
+    }
+  } catch {
+    // Local dev server not running — cloud/localStorage already cover this.
+  }
+}
+
+function loadCustomSongs() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SONGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(s => CATEGORIES.includes(s.Category)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomSongs(songs) {
+  try {
+    localStorage.setItem(CUSTOM_SONGS_KEY, JSON.stringify(songs));
+  } catch (err) {
+    console.error('Failed to save custom songs', err);
+  }
+}
+
+function loadRemovedSongKeys() {
+  try {
+    const raw = localStorage.getItem(REMOVED_SONGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRemovedSongKeys(keys) {
+  try {
+    localStorage.setItem(REMOVED_SONGS_KEY, JSON.stringify(keys));
+  } catch (err) {
+    console.error('Failed to save removed songs', err);
+  }
 }
 
 function SongRow({ song, onPlay, onRemove, isActive }) {

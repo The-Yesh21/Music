@@ -226,6 +226,15 @@ function App() {
   const audioRef = useRef(null);
   const shuffleQueueRef = useRef([]);
   const searchAbortRef = useRef(null);
+  // Cache of preloaded stream URLs so the next track can start instantly
+  // (no network fetch needed when the phone is locked).
+  const nextTrackCacheRef = useRef(new Map());
+  // Tracks which song the queue is currently positioned at (updated even when
+  // a fetch fails and setCurrentSong never runs).
+  const queuePosRef = useRef(null);
+  // Guards against infinite skip loops when every song fails to fetch.
+  const autoSkipCountRef = useRef(0);
+  const preloadRef = useRef(() => {});
 
   useEffect(() => {
     if (theme === 'light') {
@@ -338,6 +347,60 @@ function App() {
     setPendingTrack(null);
   };
 
+  const startSongPlayback = (song, streamUrl, image) => {
+    queuePosRef.current = song;
+    autoSkipCountRef.current = 0;
+    setCurrentSong({
+      ...song,
+      streamUrl,
+      image: image || song.image,
+    });
+    setIsPlaying(true);
+  };
+
+  const getUpcomingSongs = (song) => {
+    if (!song || categorySongs.length === 0) return [];
+    const upcoming = [];
+    if (isShuffle) {
+      upcoming.push(...shuffleQueueRef.current.slice(0, 3));
+    } else {
+      const idx = categorySongs.findIndex(s => songKey(s) === songKey(song));
+      const start = idx === -1 ? 0 : idx + 1;
+      for (let i = 0; i < 3; i += 1) {
+        upcoming.push(categorySongs[(start + i) % categorySongs.length]);
+      }
+    }
+    return upcoming;
+  };
+
+  // Resolve + cache the stream URL for the next few songs ahead of time, so
+  // auto-advance after lock screen works without a (throttled) network fetch.
+  const preloadUpcoming = (song) => {
+    if (!song) return;
+    getUpcomingSongs(song).forEach(nextSong => {
+      const key = songKey(nextSong);
+      if (nextTrackCacheRef.current.has(key)) return;
+      if (nextSong.streamUrl) {
+        nextTrackCacheRef.current.set(key, { streamUrl: nextSong.streamUrl, image: nextSong.image });
+        return;
+      }
+      searchSongs(`${nextSong.Title} ${nextSong.Artist}`)
+        .then(results => {
+          const track = results[0];
+          if (!track) return;
+          const streamUrl = getBestStreamUrl(track.downloadUrl);
+          if (streamUrl) {
+            nextTrackCacheRef.current.set(key, {
+              streamUrl,
+              image: getBestImage(track.image) || nextSong.image,
+            });
+          }
+        })
+        .catch(() => {});
+    });
+  };
+  preloadRef.current = preloadUpcoming;
+
   const playCategoryShuffle = () => {
     if (categorySongs.length === 0) return;
 
@@ -348,19 +411,21 @@ function App() {
   };
 
   const searchAndPlay = async (song, preloadedImgUrl, isAutoPlay = false) => {
+    const key = songKey(song);
+    const cached = nextTrackCacheRef.current.get(key);
+    if (cached?.streamUrl) {
+      startSongPlayback(song, cached.streamUrl, cached.image);
+      return;
+    }
+
     try {
       if (song.streamUrl) {
-        setCurrentSong({
-          ...song,
-          streamUrl: song.streamUrl,
-          image: preloadedImgUrl || song.image
-        });
-        setIsPlaying(true);
+        startSongPlayback(song, song.streamUrl, preloadedImgUrl || song.image);
         return;
       }
 
       const results = await searchSongs(`${song.Title} ${song.Artist}`);
-      
+
       let track = results[0];
       if (!track) {
         const fallbackResults = await searchSongs(song.Title);
@@ -372,26 +437,33 @@ function App() {
 
         if (!streamUrl) {
           console.warn('No playable stream for', song.Title, '- skipping to next');
-          if (isAutoPlay) playNext();
+          if (isAutoPlay) autoSkipToNext(song);
           return;
         }
 
-        setCurrentSong({
-          ...song,
-          apiData: track,
+        nextTrackCacheRef.current.set(key, {
           streamUrl,
-          image: preloadedImgUrl || getBestImage(track.image)
+          image: getBestImage(track.image) || song.image,
         });
-
-        setIsPlaying(true);
+        startSongPlayback(song, streamUrl, preloadedImgUrl || getBestImage(track.image));
       } else {
         console.warn('Song not found on JioSaavn:', song.Title, '- skipping to next');
-        if (isAutoPlay) playNext();
+        if (isAutoPlay) autoSkipToNext(song);
       }
     } catch (err) {
       console.error('Failed to fetch song:', song.Title, err);
-      if (isAutoPlay) playNext();
+      if (isAutoPlay) autoSkipToNext(song);
     }
+  };
+
+  const autoSkipToNext = (failedSong) => {
+    autoSkipCountRef.current += 1;
+    if (autoSkipCountRef.current >= Math.max(categorySongs.length, 1)) {
+      autoSkipCountRef.current = 0;
+      setIsPlaying(false);
+      return;
+    }
+    playNext(failedSong);
   };
 
   const previewSearchTrack = (track) => {
@@ -405,6 +477,8 @@ function App() {
     setPendingTrack(track);
     setIsShuffle(false);
     shuffleQueueRef.current = [];
+    queuePosRef.current = previewSong;
+    autoSkipCountRef.current = 0;
     setCurrentSong({
       ...previewSong,
       apiData: track,
@@ -442,6 +516,8 @@ function App() {
     setActiveCategory(category);
     setIsShuffle(false);
     shuffleQueueRef.current = [];
+    queuePosRef.current = newSong;
+    autoSkipCountRef.current = 0;
     setCurrentSong(prev => (prev ? { ...prev, ...newSong, Category: category } : newSong));
     setIsPlaying(true);
     setPendingTrack(null);
@@ -489,12 +565,25 @@ function App() {
   };
 
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(e => console.log('Playback prevented', e));
-      } else {
-        audioRef.current.pause();
-      }
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Preload the next few songs' stream URLs whenever the current song changes.
+    preloadRef.current(currentSong);
+
+    if (isPlaying) {
+      const tryPlay = (attempt = 0) => {
+        audio.play().catch(e => {
+          console.log('Playback prevented', e);
+          // Retry a few times to recover from transient autoplay blocks.
+          if (attempt < 3) {
+            setTimeout(() => tryPlay(attempt + 1), 400 * (attempt + 1));
+          }
+        });
+      };
+      tryPlay();
+    } else {
+      audio.pause();
     }
   }, [isPlaying, currentSong]);
 
@@ -523,33 +612,46 @@ function App() {
     }
   };
 
-  const playNext = () => {
-    if (!currentSong || categorySongs.length === 0) return;
+  const playNext = (fromSong = null) => {
+    if (categorySongs.length === 0) return;
 
+    const base = fromSong || queuePosRef.current || currentSong;
+    if (!base) return;
+
+    let nextSong = null;
     if (isShuffle) {
       if (shuffleQueueRef.current.length === 0) {
         const reshuffled = shuffleArray(
-          categorySongs.filter(s => s.Title !== currentSong.Title)
+          categorySongs.filter(s => songKey(s) !== songKey(base))
         );
         const queue = reshuffled.length > 0 ? reshuffled : shuffleArray(categorySongs);
         shuffleQueueRef.current = queue.slice(1);
-        searchAndPlay(queue[0], undefined, true);
-        return;
+        nextSong = queue[0];
+      } else {
+        nextSong = shuffleQueueRef.current.shift();
       }
+    } else {
+      const currentIndex = categorySongs.findIndex(s => songKey(s) === songKey(base));
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % categorySongs.length;
+      nextSong = categorySongs[nextIndex];
+    }
 
-      const nextSong = shuffleQueueRef.current.shift();
-      searchAndPlay(nextSong, undefined, true);
+    if (!nextSong) return;
+
+    const cached = nextTrackCacheRef.current.get(songKey(nextSong));
+    if (cached?.streamUrl) {
+      startSongPlayback(nextSong, cached.streamUrl, cached.image);
       return;
     }
 
-    const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % categorySongs.length;
-    searchAndPlay(categorySongs[nextIndex], undefined, true);
+    searchAndPlay(nextSong, undefined, true);
   };
 
   const playPrev = () => {
-    if (!currentSong || categorySongs.length === 0) return;
-    const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
+    if (categorySongs.length === 0) return;
+    const base = queuePosRef.current || currentSong;
+    if (!base) return;
+    const currentIndex = categorySongs.findIndex(s => songKey(s) === songKey(base));
     const prevIndex = currentIndex === -1
       ? 0
       : (currentIndex - 1 + categorySongs.length) % categorySongs.length;

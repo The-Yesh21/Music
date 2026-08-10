@@ -344,10 +344,10 @@ function App() {
     const shuffled = shuffleArray(categorySongs);
     shuffleQueueRef.current = shuffled.slice(1);
     setIsShuffle(true);
-    searchAndPlay(shuffled[0]);
+    searchAndPlay(shuffled[0], undefined, true);
   };
 
-  const searchAndPlay = async (song, preloadedImgUrl) => {
+  const searchAndPlay = async (song, preloadedImgUrl, isAutoPlay = false) => {
     try {
       if (song.streamUrl) {
         setCurrentSong({
@@ -371,7 +371,8 @@ function App() {
         const streamUrl = getBestStreamUrl(track.downloadUrl);
 
         if (!streamUrl) {
-          alert('No playable stream found for this song');
+          console.warn('No playable stream for', song.Title, '- skipping to next');
+          if (isAutoPlay) playNext();
           return;
         }
 
@@ -384,11 +385,12 @@ function App() {
 
         setIsPlaying(true);
       } else {
-        alert('Song not found on JioSaavn');
+        console.warn('Song not found on JioSaavn:', song.Title, '- skipping to next');
+        if (isAutoPlay) playNext();
       }
     } catch (err) {
-      console.error(err);
-      alert('Failed to fetch song from JioSaavn');
+      console.error('Failed to fetch song:', song.Title, err);
+      if (isAutoPlay) playNext();
     }
   };
 
@@ -531,18 +533,18 @@ function App() {
         );
         const queue = reshuffled.length > 0 ? reshuffled : shuffleArray(categorySongs);
         shuffleQueueRef.current = queue.slice(1);
-        searchAndPlay(queue[0]);
+        searchAndPlay(queue[0], undefined, true);
         return;
       }
 
       const nextSong = shuffleQueueRef.current.shift();
-      searchAndPlay(nextSong);
+      searchAndPlay(nextSong, undefined, true);
       return;
     }
 
     const currentIndex = categorySongs.findIndex(s => s.Title === currentSong.Title);
     const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % categorySongs.length;
-    searchAndPlay(categorySongs[nextIndex]);
+    searchAndPlay(categorySongs[nextIndex], undefined, true);
   };
 
   const playPrev = () => {
@@ -551,7 +553,7 @@ function App() {
     const prevIndex = currentIndex === -1
       ? 0
       : (currentIndex - 1 + categorySongs.length) % categorySongs.length;
-    searchAndPlay(categorySongs[prevIndex]);
+    searchAndPlay(categorySongs[prevIndex], undefined, true);
   };
 
   const handleEnded = () => {
@@ -562,6 +564,11 @@ function App() {
       }
       return;
     }
+    playNext();
+  };
+
+  const handleAudioError = () => {
+    console.warn('Audio playback error for', currentSong?.Title, '- skipping to next');
     playNext();
   };
 
@@ -841,6 +848,7 @@ function App() {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
         onEnded={handleEnded}
+        onError={handleAudioError}
       />
     </div>
   );

@@ -235,6 +235,10 @@ function App() {
   // Guards against infinite skip loops when every song fails to fetch.
   const autoSkipCountRef = useRef(0);
   const preloadRef = useRef(() => {});
+  // Mirrors `isPlaying` so event handlers / visibility listeners can read the
+  // latest intended play state without re-subscribing.
+  const isPlayingRef = useRef(false);
+  const playRetryTimerRef = useRef(null);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -436,8 +440,9 @@ function App() {
         const streamUrl = getBestStreamUrl(track.downloadUrl);
 
         if (!streamUrl) {
-          console.warn('No playable stream for', song.Title, '- skipping to next');
+          console.warn('No playable stream for', song.Title);
           if (isAutoPlay) autoSkipToNext(song);
+          else alert('No playable stream found for this song');
           return;
         }
 
@@ -447,12 +452,14 @@ function App() {
         });
         startSongPlayback(song, streamUrl, preloadedImgUrl || getBestImage(track.image));
       } else {
-        console.warn('Song not found on JioSaavn:', song.Title, '- skipping to next');
+        console.warn('Song not found on JioSaavn:', song.Title);
         if (isAutoPlay) autoSkipToNext(song);
+        else alert('Song not found on JioSaavn');
       }
     } catch (err) {
       console.error('Failed to fetch song:', song.Title, err);
       if (isAutoPlay) autoSkipToNext(song);
+      else alert('Failed to fetch song from JioSaavn');
     }
   };
 
@@ -565,27 +572,55 @@ function App() {
   };
 
   useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Aggressive auto-play: keeps retrying so the next track starts even when the
+  // browser briefly blocks programmatic play() after a src change in the
+  // background. Stops after ~60 tries or when the current song changes.
+  useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) return undefined;
 
     // Preload the next few songs' stream URLs whenever the current song changes.
     preloadRef.current(currentSong);
 
-    if (isPlaying) {
-      const tryPlay = (attempt = 0) => {
-        audio.play().catch(e => {
-          console.log('Playback prevented', e);
-          // Retry a few times to recover from transient autoplay blocks.
-          if (attempt < 3) {
-            setTimeout(() => tryPlay(attempt + 1), 400 * (attempt + 1));
-          }
-        });
-      };
-      tryPlay();
-    } else {
+    if (!isPlaying) {
       audio.pause();
+      return undefined;
     }
+
+    let cancelled = false;
+
+    const attemptPlay = () => {
+      if (cancelled) return;
+      audio.play().catch(() => {
+        if (!cancelled) {
+          playRetryTimerRef.current = setTimeout(attemptPlay, 800);
+        }
+      });
+    };
+
+    attemptPlay();
+
+    return () => {
+      cancelled = true;
+      if (playRetryTimerRef.current) clearTimeout(playRetryTimerRef.current);
+    };
   }, [isPlaying, currentSong]);
+
+  // When the app comes back to the foreground, resume if it was supposed to be
+  // playing (handles the lock-screen -> unlock transition).
+  useEffect(() => {
+    const handleVisibility = () => {
+      const audio = audioRef.current;
+      if (document.visibilityState === 'visible' && isPlayingRef.current && audio?.paused) {
+        audio.play().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -672,6 +707,15 @@ function App() {
   const handleAudioError = () => {
     console.warn('Audio playback error for', currentSong?.Title, '- skipping to next');
     playNext();
+  };
+
+  // Called when the new source is actually ready to play — more reliable than
+  // calling play() immediately after the src changes.
+  const handleAudioCanPlay = () => {
+    const audio = audioRef.current;
+    if (audio && isPlayingRef.current) {
+      audio.play().catch(() => {});
+    }
   };
 
   const handlePlay = useCallback(() => {
@@ -949,6 +993,7 @@ function App() {
         preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
+        onCanPlay={handleAudioCanPlay}
         onEnded={handleEnded}
         onError={handleAudioError}
       />

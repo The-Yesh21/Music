@@ -4,6 +4,16 @@ import ThemeToggle from './ThemeToggle';
 import InstallBanner from './InstallBanner';
 import { useMediaSession } from './hooks/useMediaSession';
 import { searchSongs, getBestImage, getBestStreamUrl, getTrackArtists, mapApiTrackToSong } from './api/jiosaavn';
+import {
+  isNative,
+  registerNativeEvents,
+  nativePlay,
+  nativePause,
+  nativeResume,
+  nativeSeek,
+  nativeGetCurrentTime,
+  nativeGetDuration,
+} from './nativeAudioBridge';
 import './index.css';
 
 const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
@@ -360,6 +370,15 @@ function App() {
       image: image || song.image,
     });
     setIsPlaying(true);
+
+    if (isNative) {
+      nativePlay(song, streamUrl).then((ok) => {
+        if (!ok) {
+          console.warn('Native playback failed for', song.Title);
+          setIsPlaying(false);
+        }
+      });
+    }
   };
 
   const getUpcomingSongs = (song) => {
@@ -492,6 +511,15 @@ function App() {
       streamUrl,
     });
     setIsPlaying(true);
+
+    if (isNative) {
+      nativePlay(previewSong, streamUrl).then((ok) => {
+        if (!ok) {
+          console.warn('Native preview failed for', previewSong.Title);
+          setIsPlaying(false);
+        }
+      });
+    }
   };
 
   const addPendingToCategory = (category) => {
@@ -579,11 +607,15 @@ function App() {
   // browser briefly blocks programmatic play() after a src change in the
   // background. Stops after ~60 tries or when the current song changes.
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return undefined;
-
     // Preload the next few songs' stream URLs whenever the current song changes.
     preloadRef.current(currentSong);
+
+    // On native, the native audio engine drives playback (this <audio> element
+    // is only used for the web/PWA build).
+    if (isNative || !currentSong?.streamUrl) return undefined;
+
+    const audio = audioRef.current;
+    if (!audio) return undefined;
 
     if (!isPlaying) {
       audio.pause();
@@ -610,8 +642,11 @@ function App() {
   }, [isPlaying, currentSong]);
 
   // When the app comes back to the foreground, resume if it was supposed to be
-  // playing (handles the lock-screen -> unlock transition).
+  // playing (handles the lock-screen -> unlock transition). The native engine
+  // manages its own background/foreground lifecycle.
   useEffect(() => {
+    if (isNative) return undefined;
+
     const handleVisibility = () => {
       const audio = audioRef.current;
       if (document.visibilityState === 'visible' && isPlayingRef.current && audio?.paused) {
@@ -621,6 +656,25 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
+
+  // Keep the time/duration/progress UI in sync with the native player by polling
+  // every second whenever something is supposed to be playing.
+  useEffect(() => {
+    if (!isNative || !isPlaying || !currentSong) return undefined;
+
+    const tick = async () => {
+      const t = await nativeGetCurrentTime();
+      const d = await nativeGetDuration();
+      setCurrentTime(t);
+      if (d > 0) {
+        setDuration(d);
+        setProgress((t / d) * 100);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying, currentSong]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -632,6 +686,18 @@ function App() {
   };
 
   const handleProgressClick = (e) => {
+    if (isNative) {
+      if (duration > 0) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        const newTime = (clickX / width) * duration;
+        nativeSeek(newTime);
+        setCurrentTime(newTime);
+        setProgress((newTime / duration) * 100);
+      }
+      return;
+    }
     if (audioRef.current && audioRef.current.duration) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -642,9 +708,12 @@ function App() {
   };
 
   const togglePlay = () => {
-    if (currentSong) {
-      setIsPlaying(!isPlaying);
+    if (!currentSong) return;
+    if (isNative) {
+      if (isPlaying) nativePause();
+      else nativeResume();
     }
+    setIsPlaying(!isPlaying);
   };
 
   const playNext = (fromSong = null) => {
@@ -737,6 +806,40 @@ function App() {
     onNext: playNext,
     onPrev: playPrev,
   });
+
+  // Latest native-side callbacks so the (mount-once) native listeners never
+  // capture stale state.
+  const nativeHandlersRef = useRef({
+    onEnded: () => {},
+    onPlaying: () => {},
+    onPaused: () => {},
+  });
+  nativeHandlersRef.current = {
+    onEnded: () => {
+      if (pendingTrack) {
+        nativeSeek(0).then(() => nativeResume());
+        return;
+      }
+      playNext();
+    },
+    onPlaying: () => setIsPlaying(true),
+    onPaused: () => setIsPlaying(false),
+  };
+
+  // Wire the native engine events: track finished -> advance queue, and keep the
+  // play/pause state in sync with the OS lock-screen / notification controls.
+  useEffect(() => {
+    if (!isNative) return undefined;
+    let unsubscribe = () => {};
+    registerNativeEvents({
+      onEnded: () => nativeHandlersRef.current.onEnded(),
+      onPlaying: () => nativeHandlersRef.current.onPlaying(),
+      onPaused: () => nativeHandlersRef.current.onPaused(),
+    }).then((unsub) => {
+      unsubscribe = unsub;
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div
@@ -988,7 +1091,7 @@ function App() {
 
       <audio
         ref={audioRef}
-        src={currentSong?.streamUrl}
+        src={!isNative ? currentSong?.streamUrl : undefined}
         playsInline
         preload="auto"
         onTimeUpdate={handleTimeUpdate}

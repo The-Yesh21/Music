@@ -1,0 +1,6 @@
+{
+  "appId": "com.echotube.app",
+  "appName": "EchoTube",
+  "webDir": "dist",
+  "backgroundColor": "#111318"
+}

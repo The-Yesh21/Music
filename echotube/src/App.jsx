@@ -20,9 +20,14 @@ const CATEGORIES = ['Happy', 'Lonely', 'Enjoyment'];
 const CUSTOM_SONGS_KEY = 'echotube_custom_songs';
 const REMOVED_SONGS_KEY = 'echotube_removed_songs';
 // Cloud persistence: Supabase via the Vercel serverless function at /api/songs.
-// The relative path works on the deployed site and with `vercel dev`; when
-// running plain `npm run dev` it falls back to localStorage only.
-const CLOUD_API = '/api/songs';
+// On the web the relative path works (same-origin on the deployed site, and with
+// `vercel dev`). Inside the native app the WebView origin is https://localhost,
+// so the relative path would hit a nonexistent local server — we must call the
+// deployed backend by its absolute URL. CapacitorHttp (enabled in
+// capacitor.config.json) routes this request natively, bypassing browser CORS.
+const CLOUD_API = isNative
+  ? 'https://music-53zs.vercel.app/api/songs'
+  : '/api/songs';
 // Optional local Flask server (label_server.py): keeps categorized_songs.json in
 // sync when developing on this machine.
 const LOCAL_FILE_API = 'http://127.0.0.1:5000/api/songs';

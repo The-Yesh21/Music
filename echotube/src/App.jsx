@@ -494,7 +494,8 @@ function App() {
       setIsPlaying(false);
       return;
     }
-    playNext(failedSong);
+    // Small gap so a run of unplayable songs can't tight-loop the whole queue.
+    setTimeout(() => playNext(failedSong), 400);
   };
 
   const previewSearchTrack = (track) => {

@@ -811,6 +811,16 @@ function App() {
     onPause: handlePause,
     onNext: playNext,
     onPrev: playPrev,
+    onSeek: (time) => {
+      const t = Math.max(0, time);
+      if (isNative) {
+        nativeSeek(t);
+        setCurrentTime(t);
+        if (duration > 0) setProgress((t / duration) * 100);
+      } else if (audioRef.current) {
+        audioRef.current.currentTime = t;
+      }
+    },
   });
 
   // Latest native-side callbacks so the (mount-once) native listeners never

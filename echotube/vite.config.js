@@ -12,6 +12,7 @@ export default defineConfig({
         name: 'EchoTube',
         short_name: 'EchoTube',
         description: 'Your mood-based music player',
+        start_url: '/',
         theme_color: '#111318',
         background_color: '#111318',
         display: 'standalone',

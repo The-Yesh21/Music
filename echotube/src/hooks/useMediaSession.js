@@ -10,9 +10,13 @@ export function useMediaSession({
   onPause,
   onNext,
   onPrev,
+  onSeek,
 }) {
-  const handlersRef = useRef({ onPlay, onPause, onNext, onPrev });
-  handlersRef.current = { onPlay, onPause, onNext, onPrev };
+  const handlersRef = useRef({ onPlay, onPause, onNext, onPrev, onSeek });
+  handlersRef.current = { onPlay, onPause, onNext, onPrev, onSeek };
+  // Latest position so the (mount-once) seek handlers can read current time.
+  const positionRef = useRef({ currentTime, duration });
+  positionRef.current = { currentTime, duration };
   const wakeLockRef = useRef(null);
 
   const requestWakeLock = useCallback(async () => {
@@ -38,14 +42,45 @@ export function useMediaSession({
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.setActionHandler('play', () => handlersRef.current.onPlay());
-    navigator.mediaSession.setActionHandler('pause', () => handlersRef.current.onPause());
-    navigator.mediaSession.setActionHandler('previoustrack', () => handlersRef.current.onPrev());
-    navigator.mediaSession.setActionHandler('nexttrack', () => handlersRef.current.onNext());
+    // setActionHandler throws for actions a browser doesn't support, so guard each.
+    const setHandler = (action, handler) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Action unsupported in this browser; ignore.
+      }
+    };
+
+    setHandler('play', () => handlersRef.current.onPlay());
+    setHandler('pause', () => handlersRef.current.onPause());
+    setHandler('previoustrack', () => handlersRef.current.onPrev());
+    setHandler('nexttrack', () => handlersRef.current.onNext());
+    setHandler('seekto', (details) => {
+      if (details && details.seekTime != null && handlersRef.current.onSeek) {
+        handlersRef.current.onSeek(details.seekTime);
+      }
+    });
+    setHandler('seekforward', (details) => {
+      if (!handlersRef.current.onSeek) return;
+      const { currentTime: pos, duration: dur } = positionRef.current;
+      const offset = (details && details.seekOffset) || 10;
+      const target = (pos || 0) + offset;
+      handlersRef.current.onSeek(dur ? Math.min(target, dur) : target);
+    });
+    setHandler('seekbackward', (details) => {
+      if (!handlersRef.current.onSeek) return;
+      const { currentTime: pos } = positionRef.current;
+      const offset = (details && details.seekOffset) || 10;
+      handlersRef.current.onSeek(Math.max((pos || 0) - offset, 0));
+    });
 
     return () => {
-      ['play', 'pause', 'previoustrack', 'nexttrack'].forEach((action) => {
-        navigator.mediaSession.setActionHandler(action, null);
+      ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekforward', 'seekbackward'].forEach((action) => {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {
+          // ignore
+        }
       });
     };
   }, []);

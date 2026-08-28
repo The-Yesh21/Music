@@ -238,9 +238,11 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [pendingTrack, setPendingTrack] = useState(null);
+  const [isBatterySaver, setIsBatterySaver] = useState(false);
   const audioRef = useRef(null);
   const shuffleQueueRef = useRef([]);
   const searchAbortRef = useRef(null);
+  const wakeLockRef = useRef(null);
   // Cache of preloaded stream URLs so the next track can start instantly
   // (no network fetch needed when the phone is locked).
   const nextTrackCacheRef = useRef(new Map());
@@ -262,6 +264,26 @@ function App() {
       document.body.classList.remove('light');
     }
   }, [theme]);
+
+  useEffect(() => {
+    let active = true;
+    if (isBatterySaver && 'wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(lock => {
+        if (active) wakeLockRef.current = lock;
+        else lock.release();
+      }).catch(err => console.warn('Wake lock error', err));
+    } else if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+    return () => {
+      active = false;
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+  }, [isBatterySaver]);
 
   useEffect(() => {
     const removedKeys = new Set(loadRemovedSongKeys());
@@ -811,6 +833,16 @@ function App() {
     onPause: handlePause,
     onNext: playNext,
     onPrev: playPrev,
+    onSeek: (time) => {
+      const t = Math.max(0, time);
+      if (isNative) {
+        nativeSeek(t);
+        setCurrentTime(t);
+        if (duration > 0) setProgress((t / duration) * 100);
+      } else if (audioRef.current) {
+        audioRef.current.currentTime = t;
+      }
+    },
   });
 
   // Latest native-side callbacks so the (mount-once) native listeners never
@@ -865,7 +897,21 @@ function App() {
             <p className="app-eyebrow">Your music</p>
             <h1 className="app-title">EchoTube</h1>
           </div>
-          <ThemeToggle theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="icon-btn"
+              style={{ color: '#bbc9cd' }}
+              title="Battery Saver Mode"
+              onClick={() => setIsBatterySaver(true)}
+              aria-label="Battery Saver Mode"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z" />
+              </svg>
+            </button>
+            <ThemeToggle theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+          </div>
         </div>
 
         <div className="search-bar">
@@ -1106,6 +1152,28 @@ function App() {
         onEnded={handleEnded}
         onError={handleAudioError}
       />
+
+      {isBatterySaver && (
+        <div
+          role="button"
+          tabIndex={0}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: '#000',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#333',
+            cursor: 'pointer'
+          }}
+          onClick={() => setIsBatterySaver(false)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setIsBatterySaver(false); }}
+        >
+          <p>Tap anywhere to wake</p>
+        </div>
+      )}
     </div>
   );
 }

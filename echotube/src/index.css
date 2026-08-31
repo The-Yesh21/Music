@@ -892,6 +892,43 @@ body.light .search-input:focus {
   }
 }
 
+.app-container.battery-saver .ambient-layer,
+.app-container.battery-saver .ambient-orb,
+.app-container.battery-saver .ambient-wash {
+  display: none;
+}
+
+.app-container.battery-saver .ambient-orb,
+.app-container.battery-saver .ambient-wash,
+.app-container.battery-saver .now-playing-art.breathing .now-playing-img,
+.app-container.battery-saver .now-playing-art.breathing::before,
+.app-container.battery-saver .bottom-player.playing .icon-btn.primary,
+.app-container.battery-saver .progress-bar-fill::after {
+  animation: none !important;
+  will-change: auto;
+  filter: none;
+}
+
+.battery-saver-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: #444;
+  cursor: pointer;
+  /* Keep the overlay as a simple paint; do not composite extra layers. */
+  isolation: isolate;
+}
+
+.battery-saver-overlay p {
+  margin: 0;
+  font-size: 14px;
+  pointer-events: none;
+}
+
 .install-banner {
   margin: 0 16px 12px;
   padding: 14px 16px;

@@ -6,6 +6,7 @@ export function useMediaSession({
   activeCategory,
   currentTime,
   duration,
+  allowWakeLock = true,
   onPlay,
   onPause,
   onNext,
@@ -20,17 +21,18 @@ export function useMediaSession({
   const wakeLockRef = useRef(null);
 
   const requestWakeLock = useCallback(async () => {
-    if ('wakeLock' in navigator) {
-      try {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-        wakeLockRef.current.addEventListener('release', () => {
-          wakeLockRef.current = null;
-        });
-      } catch (err) {
-        console.warn('Wake Lock failed:', err.name, err.message);
-      }
+    // Screen Wake Lock keeps the display on. That is heat + battery, not audio
+    // keep-alive — skip it when battery saver is on or when the API is absent.
+    if (!allowWakeLock || !('wakeLock' in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      wakeLockRef.current.addEventListener('release', () => {
+        wakeLockRef.current = null;
+      });
+    } catch (err) {
+      console.warn('Wake Lock failed:', err.name, err.message);
     }
-  }, []);
+  }, [allowWakeLock]);
 
   const releaseWakeLock = useCallback(() => {
     if (wakeLockRef.current) {
@@ -108,14 +110,15 @@ export function useMediaSession({
 
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
 
-    if (isPlaying) {
+    if (isPlaying && allowWakeLock) {
       requestWakeLock();
     } else {
       releaseWakeLock();
     }
-  }, [currentSong, isPlaying, activeCategory, requestWakeLock, releaseWakeLock]);
+  }, [currentSong, isPlaying, activeCategory, allowWakeLock, requestWakeLock, releaseWakeLock]);
 
   useEffect(() => {
+    if (!allowWakeLock) return;
     if (!('mediaSession' in navigator) || !currentSong || !duration) return;
 
     try {
@@ -127,17 +130,22 @@ export function useMediaSession({
     } catch {
       // Some browsers reject invalid position state during track load.
     }
-  }, [currentSong, currentTime, duration]);
+  }, [currentSong, currentTime, duration, allowWakeLock]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && wakeLockRef.current === null && isPlaying) {
+      if (
+        allowWakeLock &&
+        document.visibilityState === 'visible' &&
+        wakeLockRef.current === null &&
+        isPlaying
+      ) {
         requestWakeLock();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isPlaying, requestWakeLock]);
+  }, [isPlaying, allowWakeLock, requestWakeLock]);
 
   return { requestWakeLock, releaseWakeLock };
 }

@@ -242,7 +242,7 @@ function App() {
   const audioRef = useRef(null);
   const shuffleQueueRef = useRef([]);
   const searchAbortRef = useRef(null);
-  const wakeLockRef = useRef(null);
+  const isBatterySaverRef = useRef(false);
   // Cache of preloaded stream URLs so the next track can start instantly
   // (no network fetch needed when the phone is locked).
   const nextTrackCacheRef = useRef(new Map());
@@ -266,23 +266,7 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    let active = true;
-    if (isBatterySaver && 'wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').then(lock => {
-        if (active) wakeLockRef.current = lock;
-        else lock.release();
-      }).catch(err => console.warn('Wake lock error', err));
-    } else if (wakeLockRef.current) {
-      wakeLockRef.current.release();
-      wakeLockRef.current = null;
-    }
-    return () => {
-      active = false;
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    };
+    isBatterySaverRef.current = isBatterySaver;
   }, [isBatterySaver]);
 
   useEffect(() => {
@@ -426,7 +410,7 @@ function App() {
   // Resolve + cache the stream URL for the next few songs ahead of time, so
   // auto-advance after lock screen works without a (throttled) network fetch.
   const preloadUpcoming = (song) => {
-    if (!song) return;
+    if (!song || isBatterySaverRef.current) return;
     getUpcomingSongs(song).forEach(nextSong => {
       const key = songKey(nextSong);
       if (nextTrackCacheRef.current.has(key)) return;
@@ -688,7 +672,7 @@ function App() {
   // Keep the time/duration/progress UI in sync with the native player by polling
   // every second whenever something is supposed to be playing.
   useEffect(() => {
-    if (!isNative || !isPlaying || !currentSong) return undefined;
+    if (!isNative || !isPlaying || !currentSong || isBatterySaver) return undefined;
 
     const tick = async () => {
       const t = await nativeGetCurrentTime();
@@ -702,9 +686,10 @@ function App() {
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [isPlaying, currentSong]);
+  }, [isPlaying, currentSong, isBatterySaver]);
 
   const handleTimeUpdate = () => {
+    if (isBatterySaverRef.current) return;
     if (audioRef.current) {
       setCurrentTime(audioRef.current.currentTime);
       setDuration(audioRef.current.duration || 0);
@@ -829,6 +814,7 @@ function App() {
     activeCategory,
     currentTime,
     duration,
+    allowWakeLock: !isBatterySaver,
     onPlay: handlePlay,
     onPause: handlePause,
     onNext: playNext,
@@ -881,7 +867,7 @@ function App() {
 
   return (
     <div
-      className={`app-container ${theme} mood-${activeCategory.toLowerCase()} ${isPlaying ? 'is-playing' : ''}`}
+      className={`app-container ${theme} mood-${activeCategory.toLowerCase()} ${isPlaying ? 'is-playing' : ''} ${isBatterySaver ? 'battery-saver' : ''}`}
     >
       <div className="ambient-layer" aria-hidden="true">
         <span className="ambient-orb ambient-orb-a" />
@@ -900,11 +886,11 @@ function App() {
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <button
               type="button"
-              className="icon-btn"
-              style={{ color: '#bbc9cd' }}
-              title="Battery Saver Mode"
-              onClick={() => setIsBatterySaver(true)}
-              aria-label="Battery Saver Mode"
+              className={`icon-btn ${isBatterySaver ? 'active-shuffle' : ''}`}
+              title={isBatterySaver ? 'Exit battery saver' : 'Battery saver'}
+              onClick={() => setIsBatterySaver((on) => !on)}
+              aria-pressed={isBatterySaver}
+              aria-label="Battery saver"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z" />
@@ -1145,7 +1131,7 @@ function App() {
         ref={audioRef}
         src={!isNative ? currentSong?.streamUrl : undefined}
         playsInline
-        preload="auto"
+        preload={isBatterySaver ? 'none' : 'auto'}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
         onCanPlay={handleAudioCanPlay}
@@ -1157,21 +1143,11 @@ function App() {
         <div
           role="button"
           tabIndex={0}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: '#000',
-            zIndex: 99999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#333',
-            cursor: 'pointer'
-          }}
+          className="battery-saver-overlay"
           onClick={() => setIsBatterySaver(false)}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setIsBatterySaver(false); }}
         >
-          <p>Tap anywhere to wake</p>
+          <p>Music keeps playing. Tap to wake.</p>
         </div>
       )}
     </div>

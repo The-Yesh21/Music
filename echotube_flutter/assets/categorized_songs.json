@@ -1,0 +1,1294 @@
+[
+  {
+    "Title": "Love Me Not",
+    "Artist": "Ravyn Lenae",
+    "Mood": "Smooth",
+    "Genre": "R&B",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Dooron Dooron",
+    "Artist": "Paresh Pahuja, Meghdeep Bose, Shiv Tandan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tum Ho Toh",
+    "Artist": "Vishal Mishra, Hansika Pareek, Raj Shekhar",
+    "Mood": "Soulful",
+    "Genre": "Bollywood Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "The Weeknd - S\u00e3o Paulo (After Hours Til Dawn) Latin America Live Concept",
+    "Artist": "ASTRXO",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Espresso",
+    "Artist": "Sabrina Carpenter",
+    "Mood": "Upbeat / Flirtatious",
+    "Genre": "Synth-Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Choo Lo",
+    "Artist": "The Local Train",
+    "Mood": "Nostalgic / Melancholic",
+    "Genre": "Indie Rock",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Dooron Dooron - Unplugged",
+    "Artist": "Paresh Pahuja",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Hymn for the Weekend",
+    "Artist": "Coldplay",
+    "Mood": "Uplifting / Festive",
+    "Genre": "Alternative Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "ADHM : Channa Mereya",
+    "Artist": "Mirshad Bin Moideen, Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Jhol",
+    "Artist": "Maanu, Annural Khalid",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Lana Del Rey - Cinnamon Girl (Lyrics)",
+    "Artist": "7clouds",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Bairan",
+    "Artist": "Banjaare",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Zaalima",
+    "Artist": "Arijit Singh, Harshdeep Kaur",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Kalank (Bonus Track)",
+    "Artist": "Pritam, Arijit Singh, Shilpa Rao",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "As It Was",
+    "Artist": "Harry Styles",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Phir Se",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Yeh Raaten Yeh Mausam",
+    "Artist": "Kishore Kumar, Asha Bhosle, Sanam, Simran Shgal",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "nadaaniyan",
+    "Artist": "Akshath",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Shararat",
+    "Artist": "Madhubanti Bagchi, Jasmine Sandlas, Shashwat Sachdev",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Zaroor",
+    "Artist": "Aparshakti Khurana, Savi Kahlon",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Somewhere Only We Know",
+    "Artist": "Keane",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Saibo",
+    "Artist": "Sachin-Jigar, Shreya Ghoshal, Tochi Raina",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Arz Kiya Hai (Coke Studio)",
+    "Artist": "Anuv Jain",
+    "Mood": "Melancholic",
+    "Genre": "Indie Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "7 Years",
+    "Artist": "Lukas Graham",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Manzar Hai Yeh Naya",
+    "Artist": "Shantanu Sudame",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Sajni",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Stan (feat. Dido)",
+    "Artist": "Eminem",
+    "Mood": "Aggressive / Energetic",
+    "Genre": "Hip-Hop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Matthew Ifield - I Think They Call This Love | Slowed Reverb",
+    "Artist": "Denys Cinematic",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Jashn-E-Bahaaraa",
+    "Artist": "A.R. Rahman, Javed Ali",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Deewaana Deewaana (Full Video): Tere Ishk Mein | Dhanush, Kriti | AR Rahman | Aanand LR | Bhushan K",
+    "Artist": "Sarthak Kalyani",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Ae Dil Hai Mushkil Title Track (From \"Ae Dil Hai Mushkil\")",
+    "Artist": "Arijit Singh, Pritam",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Vaaroon",
+    "Artist": "Romy, Anand Bhaskar",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Co2",
+    "Artist": "Prateek Kuhad",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Saiyaara (Movie: Saiyaara)",
+    "Artist": "Faheem Abdullah",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Sahiba",
+    "Artist": "Aditya Rikhari",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Gul",
+    "Artist": "Anuv Jain",
+    "Mood": "Melancholic",
+    "Genre": "Indie Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "After Hours",
+    "Artist": "The Weeknd",
+    "Mood": "Dark / Moody",
+    "Genre": "Synth-Pop / R&B",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Tu Jaane Na",
+    "Artist": "Pritam Chakraborty, Atif Aslam",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Save Your Tears ((Remix) Bonus Track)",
+    "Artist": "The Weeknd, Ariana Grande",
+    "Mood": "Dark / Moody",
+    "Genre": "Synth-Pop / R&B",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Sheesha",
+    "Artist": "Mitta Ror, Swara Verma",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Agar Tum Saath Ho",
+    "Artist": "Alka Yagnik",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Phir Kabhi",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "PEE LOON",
+    "Artist": "MOHIT CHAUHAN, PRITAM, IRSHAD KAMIL",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Mann Mera",
+    "Artist": "Gajendra Verma",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tere Bina\u00a0",
+    "Artist": "A.R. Rahman, Chinmayi, Murtuza Khan, and Qadir Khan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Mockingbird",
+    "Artist": "Eminem",
+    "Mood": "Aggressive / Energetic",
+    "Genre": "Hip-Hop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Those Eyes",
+    "Artist": "New West",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Night Changes",
+    "Artist": "One Direction",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Nazm Nazm",
+    "Artist": "Arko",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Heeriye",
+    "Artist": "Jasleen Royal, Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Play Date",
+    "Artist": "Melanie Martinez",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Jo Tum Mere Ho",
+    "Artist": "Anuv Jain",
+    "Mood": "Melancholic",
+    "Genre": "Indie Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Until I Found You (Em Beihold Version)",
+    "Artist": "Stephen Sanchez, Em Beihold",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Arz Kiya Hai",
+    "Artist": "Jaikant Bhardwaj",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Apocalypse",
+    "Artist": "Cigarettes After Sex",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Qaafirana",
+    "Artist": "Arijit Singh, Nikhita Gandhi",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tujhe Kitna Chahne Lage (From \"Kabir Singh\")",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Hasi (Male Version)",
+    "Artist": "Ami Mishra & Kunaal Vermaa",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "O'Meri Laila",
+    "Artist": "Atif Aslam, Jyotica Tangri",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Ae Dil Hai Mushkil",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Mutta Kalakki (From \"Youth\")",
+    "Artist": "Ken Karunaas, Anand Kashinath, G.V. Prakash Kumar",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Ajab Si",
+    "Artist": "Vishal-Shekhar, K.K.",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Ranjha (From \"Shershaah\")",
+    "Artist": "Jasleen Royal, B Praak, Romy",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "KABHI KABHI ADITI",
+    "Artist": "Rashid Ali",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "One Of The Girls",
+    "Artist": "The Weeknd, JENNIE, Lily Rose Depp",
+    "Mood": "Dark / Moody",
+    "Genre": "Synth-Pop / R&B",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Husn",
+    "Artist": "Anuv Jain",
+    "Mood": "Melancholic",
+    "Genre": "Indie Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Jaan Se Guzarte Hain (From \"Dhurandhar The Revenge\")",
+    "Artist": "Shashwat Sachdev, Khan Saab, Nusrat Fateh Ali Khan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "I've got my eye on you.",
+    "Artist": "hirai",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Ratiyaan",
+    "Artist": "Hansika Pareek, Sagnik Kolay, Soham Majumdar",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Luteron Ka Lutera Version - Kalank Title (From \"Kalank\")",
+    "Artist": "Arijit Singh, Pritam",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Dandelions",
+    "Artist": "Ruth B.",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Pavazha Malli (From \"Think Indie\")",
+    "Artist": "Sai Abhyankkar, Shruti Haasan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Arctic Monkeys - I Wanna Be Yours (Bass Backing Track)",
+    "Artist": "LYNX HUB",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Let Her Go x Husn (Gravero Mashup) | Anuv Jain",
+    "Artist": "Alan Walker, Gravero, Peder Elias, Putri Ariani",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Bangles",
+    "Artist": "Sanju Rathod, G-SPXRK",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Beanie (Sped Up)",
+    "Artist": "10X",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Aaoge Tum Kabhi",
+    "Artist": "The Local Train",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Aaya Sher",
+    "Artist": "Jangi Reddy",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Kyon",
+    "Artist": "Papon",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Tera Chehra",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Jaiye Sajana",
+    "Artist": "Jasmine Sandlas",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Die For You (Remix)",
+    "Artist": "The Weeknd, Ariana Grande",
+    "Mood": "Dark / Moody",
+    "Genre": "Synth-Pop / R&B",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Sweater Weather",
+    "Artist": "The Neighbourhood",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Roke Na Ruke Naina (From \"Badrinath Ki Dulhania\")",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "All The Stars (From \"Black Panther: The Album\")",
+    "Artist": "Kendrick Lamar, SZA",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Line Without a Hook",
+    "Artist": "Ricky Montgomery",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Channa Mereya (From \"Ae Dil Hai Mushkil\")",
+    "Artist": "Pritam, Arijit Singh",
+    "Mood": "Heartbroken",
+    "Genre": "Bollywood Sad",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Teri Deewani",
+    "Artist": "Kailash Kher, Paresh Kamath, Naresh Kamath",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Apna Bana Le",
+    "Artist": "Sachin-Jigar, Arijit Singh, Amitabh Bhattacharya",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Dhurandhar The Revenge - Aari Aari",
+    "Artist": "Shashwat Sachdev",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Yes to Heaven",
+    "Artist": "Michi",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "SNAP",
+    "Artist": "Rosa Linn",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Show Me Love",
+    "Artist": "WizTheMc, bees & honey",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "i like the way you kiss me",
+    "Artist": "Artemas",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "O Re Piya",
+    "Artist": "Rahat Fateh Ali Khan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tu Hain Toh (From \"Mr. And Mrs. Mahi\")",
+    "Artist": "Hunny Bunny, Sagar",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Jugraafiya (feat. Hrithik Roshan & Mrunal Thakur)",
+    "Artist": "Udit Narayan, Shreya Ghoshal",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Satranga",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Dil Tu Jaan Tu (lofi)",
+    "Artist": "Gurnazar Chattha",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Khairiyat (Bonus Track)",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Ishq (From \"Lost;Found\")",
+    "Artist": "Faheem Abdullah, Rauhan Malik, Amir Ameer",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Finding Her (Female Version) (From \"UR Debut\")",
+    "Artist": "Tanishka Bahl, Kushagra, Bharath, Saaheal",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Alag Aasmaan (Acoustic)",
+    "Artist": "Anuv Jain",
+    "Mood": "Melancholic",
+    "Genre": "Indie Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Manjha",
+    "Artist": "Vishal Mishra",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tainu Khabar Nahi",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Samjhawan (Lofi Flip)",
+    "Artist": "KSW",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Sun Saathiya",
+    "Artist": "Priya Saraiya, Divya Kumar",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "TUM SE HI",
+    "Artist": "MOHIT CHAUHAN, PRITAM, IRSHAD KAMIL",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "JEENA SIKHA DE",
+    "Artist": "Arijit Singh",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Golden Brown",
+    "Artist": "The Stranglers",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Blinding Lights",
+    "Artist": "The Weeknd",
+    "Mood": "Dark / Moody",
+    "Genre": "Synth-Pop / R&B",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Ishq Hai",
+    "Artist": "Anurag Saikia, Romy, Amarabha Banerjee, Varun Jain",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Chammak Challo",
+    "Artist": "Vishal-Shekhar, Akon, Hamsika Iyer",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "KABIRA",
+    "Artist": "TOCHI RAINA, REKHA BHARDWAJ, PRITAM, AMITABH BHATTACHARYA",
+    "Mood": "Romantic",
+    "Genre": "Bollywood Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Ishq Jalakar (Karvaan)",
+    "Artist": "Shashwat Sachdev, Shahzad Ali, Subhadeep Das Chowdhury, Armaan Khan",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Sang Rahiyo",
+    "Artist": "Ujjwal Kashyap, Jasleen Royal",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "I Thought I Saw Your Face Today",
+    "Artist": "She & Him",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Babydoll",
+    "Artist": "Dominic Fike",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Way Down We Go",
+    "Artist": "KALEO",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Interstellar Main Theme - Extended Version \ud83c\udfb6 Gargantua \ud83c\udfbc| GIF | 4K Wonder Music @HansZimmer",
+    "Artist": "May 14, 2023",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Where Have You Been",
+    "Artist": "Rihanna",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Without Me",
+    "Artist": "Eminem",
+    "Mood": "Aggressive / Energetic",
+    "Genre": "Hip-Hop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Jaana Samjho Na",
+    "Artist": "Tulsi Kumar, Aditya Rikhari",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Levitating (feat. DaBaby)",
+    "Artist": "Dua Lipa",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Dhurandhar",
+    "Artist": "Hanumankind, Jasmine Sandlas, Sudhir Yaduvanshi, Shashwat Sachdev",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Let Her Go (Live from The Factory Theatre, Sydney)",
+    "Artist": "Passenger",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "We Don't Talk Anymore (feat. Selena Gomez)",
+    "Artist": "Charlie Puth",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Can't Help Falling in Love",
+    "Artist": "Elvis Presley",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Lose My Mind [From F1\u00ae The Movie]",
+    "Artist": "Don Toliver",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "FA9LA",
+    "Artist": "Flipperachi",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "VARDAAN - CARRYMINATI X Wily Frenzy",
+    "Artist": "CarryMinati",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Mahiye Jinna Sohna",
+    "Artist": "Darshan Raval",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "\u0cac\u0cbe\u0cb0\u0cbf\u0cb8\u0cc1 \u0c95\u0ca8\u0ccd\u0ca8\u0ca1 \u0ca1\u0cbf\u0c82\u0ca1\u0cbf\u0cae\u0cb5 - 4K-Video Song Baarisu Kannada Dindimava",
+    "Artist": "Poornachandra Tejaswi S.V.",
+    "Mood": "Energetic",
+    "Genre": "Kannada Pop",
+    "Category": "Enjoyment",
+    "isNew": false
+  },
+  {
+    "Title": "Brown Munde",
+    "Artist": "Gurinder Gill, Shinda Kahlon, AP Dhillon",
+    "Mood": "Energetic / Hype",
+    "Genre": "Punjabi Hip-Hop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Tulasi",
+    "Artist": "Sumedh K",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Perfect Duet",
+    "Artist": "Ed Sheeran, Beyonc\u00e9",
+    "Mood": "Romantic",
+    "Genre": "Pop Ballad",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "No Love (Audio)",
+    "Artist": "Shubh",
+    "Mood": "Energetic / Upbeat",
+    "Genre": "Punjabi Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Alexander Rybak - Fairytale (LIVE) | Norway \ud83c\uddf3\ud83c\uddf4 | Grand Final | Winner of Eurovision 2009",
+    "Artist": "Eurovision Song Contest",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Lonely",
+    "isNew": false
+  },
+  {
+    "Title": "Nenne Tanaka",
+    "Artist": "Sanjith Hegde, Arjun Janya",
+    "Mood": "Happy",
+    "Genre": "Pop",
+    "Category": "Happy",
+    "isNew": false
+  },
+  {
+    "Title": "Shape of You",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/126/Shape-of-You-English-2017-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/126/da7cde34b008294e181842062530546d_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Khat",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/479/Khat-Hindi-2025-20251130113423-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/479/c99d6d328734f0f034f08a7afc40fe30_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "The Winner Takes It All",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/461/Ritorno-al-futuro-2026-il-nuovo-2016-English-2026-20260619065020-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/461/e84bc31e801e41a1291793845d0449e4_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Rasputin",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/954/Greatest-Hits-English-1999-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/954/85250987b1b80be7db385aa4cb39205f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Be My Baby",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/227/Be-My-Baby-English-2014-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/227/3d638c8ca8ee953884e50812205e8395_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Dracula (JENNIE Remix)",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/246/Dracula-Remix-English-2026-20260203071441-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/246/40b01f5c3cf78f537083efbdef046895_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Love Story",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/888/Wedding-Songs-Summer-English-2026-20260430053514-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/888/e9351da2b3c394106d232d37fe516ef1_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Daylight",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/658/The-Dichotomy-English-2024-20250213003252-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/658/23679bf1c358470e2a57452e63117ca2_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Fairytale",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/521/Fairytales-English-2009-20211028184904-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/521/065dc479aa900e9728404d5aa801e61f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "A Man Without Love",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/939/After-Ski-Classics-English-2026-20260416053809-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/939/f61f881a9165f70d550ac03d8434b492_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Bye Bye Bye",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/729/No-Strings-Attached-2003-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/729/71871ab30cb7736ea62fe0ab6a27130d_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Starboy",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/396/The-Highlights-English-2021-20240207045714-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/396/b4e570050007b056c662f2a98c9f28ec_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "For A Reason",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/621/P-POP-CULTURE-Punjabi-2025-20250820043757-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/621/59d7b22aeaa69bd8158c1852e0b556d3_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Young And Beautiful",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/571/Young-And-Beautiful-2013-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/571/a767a2dc534b7cd6bcb544dc3b5a2589_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Made In Japan",
+    "Artist": "",
+    "Category": "Happy",
+    "image": "https://c.saavncdn.com/539/The-Complete-Capitol-Singles-1971-1975-English-2019-20230919131254-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/539/5b3555f861cce8cc7436e09a8de99538_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Skyfall",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/632/Skyfall-Full-Length--English-2012-20191009171950-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/632/2c5537d265bb8d9e4722e26e422aa505_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Diet Mountain Dew",
+    "Artist": "",
+    "Category": "Lonely",
+    "image": "https://c.saavncdn.com/970/Born-To-Die-The-Paradise-Edition-English-2012-20250805222558-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/970/e74fbbbc31f23a55f1009c36ee74c95a_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  },
+  {
+    "Title": "Falling In Love",
+    "Artist": "",
+    "Category": "Enjoyment",
+    "image": "https://c.saavncdn.com/846/Raja-Huli-Kannada-2013-20221101135804-500x500.jpg",
+    "streamUrl": "https://aac.saavncdn.com/846/2b8d054d794fc6b41b9817d3e19d8b5f_320.mp4",
+    "Mood": "Custom",
+    "Genre": "Custom",
+    "isNew": false
+  }
+]

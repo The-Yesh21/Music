@@ -46,7 +46,6 @@ class HomeScreen extends StatelessWidget {
         final artistAlbums = _buildArtistAlbums();
 
         return CustomScrollView(
-          cacheExtent: 600,
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),

@@ -33,7 +33,7 @@ class MiniPlayer extends StatelessWidget {
             final accent = moodColor(liveSong.category);
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Material(
                 color: SpotifyColors.elevated,
                 borderRadius: BorderRadius.circular(10),
@@ -69,21 +69,37 @@ class MiniPlayer extends StatelessWidget {
                                     liveSong.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: SpotifyColors.textPrimary,
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    liveSong.artist,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: SpotifyColors.textSecondary,
-                                      fontSize: 12,
-                                    ),
+                                  StreamBuilder<Duration>(
+                                    stream: handler.positionStream,
+                                    initialData: Duration.zero,
+                                    builder: (context, posSnap) {
+                                      return StreamBuilder<Duration?>(
+                                        stream: handler.durationStream,
+                                        builder: (context, durSnap) {
+                                          final pos = posSnap.data ?? Duration.zero;
+                                          final dur = durSnap.data;
+                                          final timeText = dur != null && dur > Duration.zero
+                                              ? ' • ${_fmt(pos)} / ${_fmt(dur)}'
+                                              : '';
+                                          return Text(
+                                            '${liveSong.artist}$timeText',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: SpotifyColors.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -106,7 +122,7 @@ class MiniPlayer extends StatelessWidget {
                               valueListenable: handler.isResolvingNotifier,
                               builder: (context, isResolving, _) {
                                 if (isResolving) {
-                                  return const Padding(
+                                  return Padding(
                                     padding: EdgeInsets.all(12),
                                     child: SizedBox(
                                       width: 20,
@@ -143,6 +159,15 @@ class MiniPlayer extends StatelessWidget {
                                   },
                                 );
                               },
+                            ),
+                            IconButton(
+                              onPressed: handler.skipToNext,
+                              icon: Icon(
+                                Icons.skip_next_rounded,
+                                color: SpotifyColors.textPrimary,
+                                size: 26,
+                              ),
+                              tooltip: 'Next',
                             ),
                           ],
                         ),
@@ -182,6 +207,13 @@ class MiniPlayer extends StatelessWidget {
       },
     );
   }
+}
+
+String _fmt(Duration d) {
+  final totalSeconds = d.inSeconds < 0 ? 0 : d.inSeconds;
+  final mins = totalSeconds ~/ 60;
+  final secs = totalSeconds % 60;
+  return '$mins:${secs.toString().padLeft(2, '0')}';
 }
 
 class _ArtworkThumb extends StatelessWidget {

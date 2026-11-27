@@ -102,7 +102,8 @@ class DatabaseHelper {
     final rows = await db.query(
       songsTable,
       where: includeRemoved ? null : 'is_removed = 0',
-      orderBy: 'created_at ASC',
+      orderBy:
+          'is_custom DESC, CASE WHEN is_custom = 1 THEN -created_at ELSE created_at END ASC',
     );
     return rows.map(Song.fromDbMap).toList();
   }

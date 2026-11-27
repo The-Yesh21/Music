@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:echotube_flutter/data/database_helper.dart';
 import 'package:echotube_flutter/models/song.dart';
 import 'package:echotube_flutter/services/jiosaavn_service.dart';
+import 'package:echotube_flutter/services/taste_engine.dart';
 import 'package:echotube_flutter/services/youtube_playlist_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -216,6 +217,49 @@ void main() {
       expect(mixTracks.first.videoId, 'pyGU-UudvrM');
       expect(mixTracks.first.title, 'I Thought I Saw Your Face Today');
       expect(mixTracks.first.artist, 'She & Him');
+    });
+  });
+
+  group('TasteEngine', () {
+    test('recommends songs matching current artist, mood, and user likes', () {
+      final current = Song(
+        songKey: Song.computeKey('Dooron Dooron', 'Paresh Pahuja'),
+        title: 'Dooron Dooron',
+        artist: 'Paresh Pahuja',
+        mood: 'Happy',
+        genre: 'Pop',
+        category: 'Happy',
+        isLiked: true,
+        playCount: 5,
+        createdAt: 1000,
+      );
+      final sameArtist = Song(
+        songKey: Song.computeKey('Dooron Dooron - Unplugged', 'Paresh Pahuja'),
+        title: 'Dooron Dooron - Unplugged',
+        artist: 'Paresh Pahuja',
+        mood: 'Happy',
+        genre: 'Pop',
+        category: 'Happy',
+        createdAt: 1001,
+      );
+      final different = Song(
+        songKey: Song.computeKey('Choo Lo', 'The Local Train'),
+        title: 'Choo Lo',
+        artist: 'The Local Train',
+        mood: 'Nostalgic',
+        genre: 'Indie Rock',
+        category: 'Lonely',
+        createdAt: 1002,
+      );
+
+      final recs = TasteEngine.instance.recommendFromLibrary(
+        [current, sameArtist, different],
+        currentSong: current,
+      );
+
+      expect(recs.length, 2);
+      expect(recs.first.song.songKey, sameArtist.songKey);
+      expect(recs.first.reason, contains('Paresh Pahuja'));
     });
   });
 }

@@ -10,6 +10,7 @@ import '../services/audio_player_service.dart';
 import '../services/cloud_sync_service.dart';
 import '../services/jiosaavn_service.dart';
 import '../services/offline_download_service.dart';
+import '../services/taste_engine.dart';
 import '../services/youtube_playlist_service.dart';
 import '../theme/spotify_theme.dart';
 
@@ -39,6 +40,9 @@ class AppController extends ChangeNotifier {
   final Map<String, double> _downloadProgress = {};
   List<String> _topArtists = const [];
   List<String> _topGenres = const [];
+  List<RecommendedSong> _recommendedLibrary = const [];
+  List<DiscoveredRecommendation> _discoveredRecommendations = const [];
+  bool _isDiscovering = false;
 
   List<Song> get songs => _songs;
   bool get isLoading => _isLoading;
@@ -48,6 +52,10 @@ class AppController extends ChangeNotifier {
   Map<String, double> get downloadProgress => Map.unmodifiable(_downloadProgress);
   List<String> get topArtists => _topArtists;
   List<String> get topGenres => _topGenres;
+  List<RecommendedSong> get recommendedLibrary => _recommendedLibrary;
+  List<DiscoveredRecommendation> get discoveredRecommendations =>
+      _discoveredRecommendations;
+  bool get isDiscovering => _isDiscovering;
 
   List<Song> get likedSongs =>
       _songs.where((s) => !s.isRemoved && s.isLiked).toList();
@@ -136,7 +144,42 @@ class AppController extends ChangeNotifier {
       unawaited(audioHandler.playQueue(stack, startIndex: 0, shuffle: false));
     }
 
+    audioHandler.currentSongNotifier.addListener(_onCurrentSongChanged);
+    unawaited(refreshDiscovery());
     unawaited(syncNow());
+  }
+
+  void _onCurrentSongChanged() {
+    _recomputeRecommendations();
+    notifyListeners();
+  }
+
+  void _recomputeRecommendations() {
+    _recommendedLibrary = TasteEngine.instance.recommendFromLibrary(
+      _songs,
+      currentSong: audioHandler.currentSongNotifier.value,
+      limit: 15,
+    );
+  }
+
+  Future<void> refreshDiscovery() async {
+    if (_isDiscovering || _songs.isEmpty) return;
+    _isDiscovering = true;
+    notifyListeners();
+    try {
+      final all = await db.getAllSongs(includeRemoved: true);
+      final results = await TasteEngine.instance.discoverNewSongs(
+        allExistingSongs: all,
+        currentSong: audioHandler.currentSongNotifier.value,
+        limit: 15,
+      );
+      _discoveredRecommendations = results;
+    } catch (_) {
+      // Keep previous recommendations if offline.
+    } finally {
+      _isDiscovering = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _reloadFromDb() async {
@@ -146,6 +189,7 @@ class AppController extends ChangeNotifier {
     _songs = loaded.where((s) => !s.isRemoved).toList();
     _topArtists = artists.map((e) => e.key).toList();
     _topGenres = genres.map((e) => e.key).toList();
+    _recomputeRecommendations();
   }
 
   Future<void> syncNow() async {

@@ -37,6 +37,8 @@ class HomeScreen extends StatelessWidget {
         final recentlyPlayed = controller.recentlyPlayed;
         final newlyAdded = controller.newlyAddedSongs;
         final walkInStack = controller.walkInStackSongs;
+        final recommendedLib = controller.recommendedLibrary;
+        final discovered = controller.discoveredRecommendations;
         final topRotation = controller.mostPlayed.isNotEmpty
             ? controller.mostPlayed
             : controller.songs.take(12).toList();
@@ -326,6 +328,157 @@ class HomeScreen extends StatelessWidget {
                 ]),
               ),
             ),
+            if (recommendedLib.isNotEmpty) ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              const SliverToBoxAdapter(
+                child: _SectionHeader(title: 'Recommended For You'),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 204,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: recommendedLib.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (_, index) {
+                      final rec = recommendedLib[index];
+                      return _TasteMixCard(
+                        mix: _TasteMix(
+                          title: rec.song.title,
+                          subtitle: rec.reason,
+                          accent: moodColor(rec.song.category),
+                          imageUrl: rec.song.imageUrl,
+                          songs: [rec.song],
+                        ),
+                        onTap: () => controller.playSong(
+                          rec.song,
+                          queue: recommendedLib.map((r) => r.song).toList(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+            if (discovered.isNotEmpty || controller.isDiscovering) ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Discover For Your Taste',
+                          style: TextStyle(
+                            color: SpotifyColors.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: controller.isDiscovering
+                            ? null
+                            : controller.refreshDiscovery,
+                        icon: controller.isDiscovering
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: SpotifyColors.orangeAccent,
+                                ),
+                              )
+                            : Icon(
+                                Icons.refresh_rounded,
+                                color: SpotifyColors.orangeAccent,
+                              ),
+                        tooltip: 'Refresh Discoveries',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (discovered.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 204,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: discovered.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 14),
+                      itemBuilder: (_, index) {
+                        final item = discovered[index];
+                        final quality =
+                            controller.audioHandler.qualityNotifier.value;
+                        final queue = discovered
+                            .map((d) => d.track
+                                .toSong(d.suggestedCategory, quality: quality))
+                            .toList();
+                        final song = item.track.toSong(
+                          item.suggestedCategory,
+                          quality: quality,
+                        );
+                        return Stack(
+                          children: [
+                            _TasteMixCard(
+                              mix: _TasteMix(
+                                title: item.track.title,
+                                subtitle: item.reason,
+                                accent: moodColor(item.suggestedCategory),
+                                imageUrl: item.track.imageUrl,
+                                songs: [song],
+                              ),
+                              onTap: () =>
+                                  controller.playSong(song, queue: queue),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Material(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () async {
+                                    await controller.addSearchTrackToCategory(
+                                      item.track,
+                                      item.suggestedCategory,
+                                    );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Added "${item.track.title}" to ${item.suggestedCategory}',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    controller.refreshDiscovery();
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      size: 18,
+                                      color: SpotifyColors.orangeAccent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
             const SliverToBoxAdapter(
               child: _SectionHeader(title: 'Made For Your Taste'),

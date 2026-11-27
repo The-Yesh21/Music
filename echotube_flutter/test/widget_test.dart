@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:echotube_flutter/data/database_helper.dart';
 import 'package:echotube_flutter/models/song.dart';
 import 'package:echotube_flutter/services/jiosaavn_service.dart';
+import 'package:echotube_flutter/services/taste_engine.dart';
+import 'package:echotube_flutter/services/youtube_playlist_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -140,6 +142,124 @@ void main() {
       expect(track.bestUrlForQuality(AudioQuality.high), 'https://example.com/320.mp4');
       expect(track.bestUrlForQuality(AudioQuality.balanced), 'https://example.com/160.mp4');
       expect(track.bestUrlForQuality(AudioQuality.saver), 'https://example.com/96.mp4');
+    });
+  });
+
+  group('YouTubePlaylistService', () {
+    test('extractPlaylistId parses URLs and raw IDs', () {
+      expect(
+        YouTubePlaylistService.extractPlaylistId(
+          'https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+        ),
+        'PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+      );
+      expect(
+        YouTubePlaylistService.extractPlaylistId(
+          'https://music.youtube.com/watch?v=abc123&list=OLAK5uy_k1234567890',
+        ),
+        'OLAK5uy_k1234567890',
+      );
+      expect(YouTubePlaylistService.extractPlaylistId('invalid'), isNull);
+    });
+
+    test('parses ytInitialData and detects duplicates against existing library', () {
+      const html = '''
+      <html><script>var ytInitialData = {"contents":{"playlistVideoRenderer":{"videoId":"v1","title":{"runs":[{"text":"The Local Train - Choo Lo (Official Video)"}]},"shortBylineText":{"runs":[{"text":"The Local Train - Topic"}]}}},"extra":{"playlistVideoRenderer":{"videoId":"v2","title":{"runs":[{"text":"New Song (Lyrics)"}]},"shortBylineText":{"runs":[{"text":"Indie Artist"}]}}}}; </script></html>
+      ''';
+
+      final parsed = YouTubePlaylistService.parsePlaylistTracksFromHtml(html);
+      expect(parsed.length, 2);
+      expect(parsed[0].title, 'Choo Lo');
+      expect(parsed[0].artist, 'The Local Train');
+      expect(parsed[1].title, 'New Song');
+      expect(parsed[1].artist, 'Indie Artist');
+
+      final existing = [
+        Song(
+          songKey: Song.computeKey('Choo Lo', 'The Local Train'),
+          title: 'Choo Lo',
+          artist: 'The Local Train',
+          mood: 'Nostalgic',
+          genre: 'Indie Rock',
+          category: 'Lonely',
+          createdAt: 1000,
+        ),
+      ];
+
+      expect(
+        YouTubePlaylistService.isDuplicateTrack(parsed[0], existing),
+        isTrue,
+      );
+      expect(
+        YouTubePlaylistService.isDuplicateTrack(parsed[1], existing),
+        isFalse,
+      );
+    });
+
+    test('detects RD Mix playlist IDs and preserves seed video ID', () {
+      const mixUrl =
+          'https://www.youtube.com/watch?v=pyGU-UudvrM&list=RDpyGU-UudvrM&start_radio=1';
+      final parsed = YouTubePlaylistService.parsePlaylistInput(mixUrl);
+      expect(parsed, isNotNull);
+      expect(parsed!.playlistId, 'RDpyGU-UudvrM');
+      expect(parsed.videoId, 'pyGU-UudvrM');
+      expect(YouTubePlaylistService.isMixPlaylistId(parsed.playlistId), isTrue);
+      expect(
+        YouTubePlaylistService.isMixPlaylistId('PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI'),
+        isFalse,
+      );
+
+      const mixHtml = '''
+      <html><script>var ytInitialData = {"contents":{"playlistPanelVideoRenderer":{"videoId":"pyGU-UudvrM","title":{"simpleText":"She & Him - I Thought I Saw Your Face Today (Official Lyric Video)"},"shortBylineText":{"runs":[{"text":"SheandHimOfficial"}]}}}}; </script></html>
+      ''';
+      final mixTracks = YouTubePlaylistService.parsePlaylistTracksFromHtml(mixHtml);
+      expect(mixTracks.length, 1);
+      expect(mixTracks.first.videoId, 'pyGU-UudvrM');
+      expect(mixTracks.first.title, 'I Thought I Saw Your Face Today');
+      expect(mixTracks.first.artist, 'She & Him');
+    });
+  });
+
+  group('TasteEngine', () {
+    test('recommends songs matching current artist, mood, and user likes', () {
+      final current = Song(
+        songKey: Song.computeKey('Dooron Dooron', 'Paresh Pahuja'),
+        title: 'Dooron Dooron',
+        artist: 'Paresh Pahuja',
+        mood: 'Happy',
+        genre: 'Pop',
+        category: 'Happy',
+        isLiked: true,
+        playCount: 5,
+        createdAt: 1000,
+      );
+      final sameArtist = Song(
+        songKey: Song.computeKey('Dooron Dooron - Unplugged', 'Paresh Pahuja'),
+        title: 'Dooron Dooron - Unplugged',
+        artist: 'Paresh Pahuja',
+        mood: 'Happy',
+        genre: 'Pop',
+        category: 'Happy',
+        createdAt: 1001,
+      );
+      final different = Song(
+        songKey: Song.computeKey('Choo Lo', 'The Local Train'),
+        title: 'Choo Lo',
+        artist: 'The Local Train',
+        mood: 'Nostalgic',
+        genre: 'Indie Rock',
+        category: 'Lonely',
+        createdAt: 1002,
+      );
+
+      final recs = TasteEngine.instance.recommendFromLibrary(
+        [current, sameArtist, different],
+        currentSong: current,
+      );
+
+      expect(recs.length, 2);
+      expect(recs.first.song.songKey, sameArtist.songKey);
+      expect(recs.first.reason, contains('Paresh Pahuja'));
     });
   });
 }

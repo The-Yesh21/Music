@@ -7,6 +7,7 @@ import '../models/song.dart';
 import '../services/jiosaavn_service.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
+import '../widgets/youtube_import_sheet.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -163,14 +164,37 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: Text(
-              'Search',
-              style: TextStyle(
-                color: SpotifyColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Search',
+                    style: TextStyle(
+                      color: SpotifyColors.textPrimary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () =>
+                      showYouTubeImportSheet(context, widget.controller),
+                  icon: Icon(
+                    Icons.playlist_add_rounded,
+                    size: 18,
+                    color: SpotifyColors.orangeAccent,
+                  ),
+                  label: Text(
+                    'YT Playlist',
+                    style: TextStyle(
+                      color: SpotifyColors.orangeAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(

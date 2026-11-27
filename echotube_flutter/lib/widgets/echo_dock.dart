@@ -60,11 +60,12 @@ class _EchoDockState extends State<EchoDock> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
         child: Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
+          child: RepaintBoundary(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
                 height: 66,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
@@ -119,6 +120,7 @@ class _EchoDockState extends State<EchoDock> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),
@@ -216,8 +218,8 @@ class _DockTileState extends State<_DockTile>
               offset: Offset(0, _hopOffset),
               child: AnimatedScale(
                 scale: scale,
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutBack,
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutCubic,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [

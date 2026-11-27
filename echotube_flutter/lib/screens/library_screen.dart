@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
+import '../widgets/youtube_import_sheet.dart';
 
 enum _LibraryFilter { all, newlyAdded, happy, lonely, enjoyment, liked, downloaded }
 
@@ -111,6 +112,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () =>
+                          showYouTubeImportSheet(context, widget.controller),
+                      icon: Icon(
+                        Icons.playlist_add_rounded,
+                        color: SpotifyColors.orangeAccent,
+                      ),
+                      tooltip: 'Import YouTube Playlist',
                     ),
                   ],
                 ),

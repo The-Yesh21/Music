@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'data/database_helper.dart';
 import 'screens/home_screen.dart';
@@ -10,11 +11,15 @@ import 'services/audio_player_service.dart';
 import 'services/jiosaavn_service.dart';
 import 'state/app_controller.dart';
 import 'theme/spotify_theme.dart';
+import 'widgets/dynamic_island.dart';
 import 'widgets/echo_dock.dart';
 import 'widgets/mini_player.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   final audioHandler = await AudioService.init(
     builder: () => EchoTubeAudioHandler(
@@ -25,6 +30,11 @@ Future<void> main() async {
       androidNotificationChannelId: 'com.echotube.channel.audio',
       androidNotificationChannelName: 'EchoTube Playback',
       androidNotificationIcon: 'mipmap/ic_launcher',
+      notificationColor: Color(0xFFFF6B2C),
+      artDownscaleWidth: 512,
+      artDownscaleHeight: 512,
+      fastForwardInterval: Duration(seconds: 10),
+      rewindInterval: Duration(seconds: 10),
       androidNotificationOngoing: false,
       androidStopForegroundOnPause: false,
       androidShowNotificationBadge: true,
@@ -110,9 +120,16 @@ class _EchoTubeShellState extends State<_EchoTubeShell> {
         return Stack(
           children: [
             Scaffold(
-              body: IndexedStack(
-                index: _currentIndex,
-                children: pages,
+              body: Column(
+                children: [
+                  DynamicIslandBar(controller: widget.controller),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _currentIndex,
+                      children: pages,
+                    ),
+                  ),
+                ],
               ),
               bottomNavigationBar: Column(
                 mainAxisSize: MainAxisSize.min,

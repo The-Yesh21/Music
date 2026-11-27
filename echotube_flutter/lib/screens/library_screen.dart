@@ -5,7 +5,7 @@ import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
 
-enum _LibraryFilter { all, happy, lonely, enjoyment, liked, downloaded }
+enum _LibraryFilter { all, newlyAdded, happy, lonely, enjoyment, liked, downloaded }
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
@@ -27,6 +27,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     switch (_selectedFilter) {
       case _LibraryFilter.all:
         return widget.controller.songs;
+      case _LibraryFilter.newlyAdded:
+        return widget.controller.newlyAddedSongs;
       case _LibraryFilter.happy:
         return widget.controller.songsForCategory('Happy');
       case _LibraryFilter.lonely:
@@ -44,6 +46,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     switch (filter) {
       case _LibraryFilter.all:
         return 'All';
+      case _LibraryFilter.newlyAdded:
+        return 'Newly Added';
       case _LibraryFilter.happy:
         return 'Happy';
       case _LibraryFilter.lonely:

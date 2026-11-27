@@ -33,6 +33,7 @@ class HomeScreen extends StatelessWidget {
         }
 
         final recentlyPlayed = controller.recentlyPlayed;
+        final newlyAdded = controller.newlyAddedSongs;
         final topRotation = controller.mostPlayed.isNotEmpty
             ? controller.mostPlayed
             : controller.songs.take(12).toList();
@@ -251,6 +252,31 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (newlyAdded.isNotEmpty) ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              const SliverToBoxAdapter(
+                child: _SectionHeader(title: 'Newly Added'),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 192,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: newlyAdded.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (_, index) {
+                      final song = newlyAdded[index];
+                      return _SongShelfCard(
+                        song: song,
+                        onTap: () =>
+                            controller.playSong(song, queue: newlyAdded),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
             if (artistAlbums.isNotEmpty) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 22)),
               const SliverToBoxAdapter(

@@ -10,6 +10,7 @@ import 'services/audio_player_service.dart';
 import 'services/jiosaavn_service.dart';
 import 'state/app_controller.dart';
 import 'theme/spotify_theme.dart';
+import 'widgets/echo_dock.dart';
 import 'widgets/mini_player.dart';
 
 Future<void> main() async {
@@ -117,26 +118,42 @@ class _EchoTubeShellState extends State<_EchoTubeShell> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   MiniPlayer(controller: widget.controller),
-                  BottomNavigationBar(
-                    currentIndex: _currentIndex,
-                    onTap: (index) => setState(() => _currentIndex = index),
-                    items: const [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.home_outlined),
-                        activeIcon: Icon(Icons.home_rounded),
+                  EchoDock(
+                    items: [
+                      EchoDockItem(
+                        icon: Icons.home_outlined,
+                        activeIcon: Icons.home_rounded,
                         label: 'Home',
+                        isActive: _currentIndex == 0,
+                        onTap: () => setState(() => _currentIndex = 0),
                       ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.search_rounded),
-                        activeIcon: Icon(Icons.search_rounded),
+                      EchoDockItem(
+                        icon: Icons.search_rounded,
+                        activeIcon: Icons.search_rounded,
                         label: 'Search',
+                        isActive: _currentIndex == 1,
+                        onTap: () => setState(() => _currentIndex = 1),
                       ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.library_music_outlined),
-                        activeIcon: Icon(Icons.library_music_rounded),
+                      EchoDockItem(
+                        icon: Icons.library_music_outlined,
+                        activeIcon: Icons.library_music_rounded,
                         label: 'Your Library',
+                        isActive: _currentIndex == 2,
+                        badge: widget.controller.downloadedSongs.isNotEmpty
+                            ? '${widget.controller.downloadedSongs.length}'
+                            : null,
+                        onTap: () => setState(() => _currentIndex = 2),
                       ),
                     ],
+                    trailingItem: EchoDockItem(
+                      icon: Icons.shuffle_rounded,
+                      activeIcon: Icons.shuffle_rounded,
+                      label: 'Shuffle Mix',
+                      onTap: () => widget.controller.playSongsList(
+                        widget.controller.walkInStackSongs,
+                        shuffle: true,
+                      ),
+                    ),
                   ),
                 ],
               ),

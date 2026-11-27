@@ -406,6 +406,9 @@ class EchoTubeAudioHandler extends BaseAudioHandler
       title: song.title,
       artist: song.artist,
       album: song.category,
+      genre: song.genre.isNotEmpty ? song.genre : song.category,
+      displayTitle: song.title,
+      displaySubtitle: '${song.artist} • ${song.category}',
       duration: duration,
       artUri: (art != null && art.isNotEmpty) ? Uri.tryParse(art) : null,
     );

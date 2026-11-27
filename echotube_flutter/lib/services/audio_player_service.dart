@@ -241,6 +241,15 @@ class EchoTubeAudioHandler extends BaseAudioHandler
     await super.stop();
   }
 
+  @override
+  Future<void> onTaskRemoved() async {
+    // Stop playback and tear down the foreground service when the user
+    // swipes the app away from Recents, while keeping background playback
+    // active when the screen is locked or another app is opened.
+    await stop();
+    await super.onTaskRemoved();
+  }
+
   void _handlePlayerState(PlayerState state) {
     _broadcastPlaybackState();
     if (state.processingState == ProcessingState.completed &&

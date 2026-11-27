@@ -54,6 +54,14 @@ class AppController extends ChangeNotifier {
   List<Song> get downloadedSongs =>
       _songs.where((s) => !s.isRemoved && s.isDownloaded).toList();
 
+  List<Song> get newlyAddedSongs {
+    final added = _songs
+        .where((s) => !s.isRemoved && (s.isCustom || s.isNew))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return added.take(20).toList();
+  }
+
   List<Song> get recentlyPlayed {
     final played = _songs
         .where((s) => !s.isRemoved && s.lastPlayedAt != null)
@@ -196,7 +204,12 @@ class AppController extends ChangeNotifier {
     JioSaavnTrack track,
     String category,
   ) async {
-    final song = track.toSong(category);
+    final song = track.toSong(category).copyWith(
+          isCustom: true,
+          isNew: true,
+          pendingSync: true,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+        );
     await db.upsertSong(song);
     await _reloadFromDb();
     notifyListeners();

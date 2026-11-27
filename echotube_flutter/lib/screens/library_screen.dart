@@ -90,7 +90,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Your Library',
                         style: TextStyle(
@@ -102,7 +102,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                     Text(
                       '${filtered.length} songs',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: SpotifyColors.textSecondary,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -160,7 +160,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const Spacer(),
+                    Spacer(),
                     OutlinedButton.icon(
                       onPressed: filtered.isEmpty || _isBatchDownloading
                           ? null
@@ -175,7 +175,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                       ),
                       icon: _isBatchDownloading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 15,
                               height: 15,
                               child: CircularProgressIndicator(
@@ -197,7 +197,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
               Expanded(
                 child: filtered.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
                           'No songs in this view yet',
                           style: TextStyle(color: SpotifyColors.textSecondary),
@@ -278,7 +278,7 @@ class _LibrarySongTile extends StatelessWidget {
         child: Row(
           children: [
             if (song.isDownloaded) ...[
-              const Icon(
+              Icon(
                 Icons.arrow_circle_down_rounded,
                 size: 14,
                 color: SpotifyColors.spotifyGreen,
@@ -290,7 +290,7 @@ class _LibrarySongTile extends StatelessWidget {
                 song.artist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: SpotifyColors.textSecondary,
                   fontSize: 12.5,
                 ),
@@ -320,7 +320,7 @@ class _LibrarySongTile extends StatelessWidget {
         children: [
           if (progress != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: EdgeInsets.symmetric(horizontal: 10),
               child: SizedBox(
                 width: 18,
                 height: 18,
@@ -364,7 +364,7 @@ class _LibrarySongTile extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             color: SpotifyColors.elevated,
-            icon: const Icon(
+            icon: Icon(
               Icons.more_vert_rounded,
               color: SpotifyColors.textSecondary,
               size: 20,

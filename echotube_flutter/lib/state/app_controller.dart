@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/database_helper.dart';
 import '../models/song.dart';
@@ -9,6 +10,7 @@ import '../services/audio_player_service.dart';
 import '../services/cloud_sync_service.dart';
 import '../services/jiosaavn_service.dart';
 import '../services/offline_download_service.dart';
+import '../theme/spotify_theme.dart';
 
 String audioQualityLabel(AudioQuality quality) {
   final name = quality.name.toLowerCase();
@@ -31,6 +33,8 @@ class AppController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isSyncing = false;
   bool _isBatterySaver = false;
+  bool _isDarkMode = true;
+  static const String _darkModePrefKey = 'echotube_dark_mode';
   final Map<String, double> _downloadProgress = {};
   List<String> _topArtists = const [];
   List<String> _topGenres = const [];
@@ -39,6 +43,7 @@ class AppController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
   bool get isBatterySaver => _isBatterySaver;
+  bool get isDarkMode => _isDarkMode;
   Map<String, double> get downloadProgress => Map.unmodifiable(_downloadProgress);
   List<String> get topArtists => _topArtists;
   List<String> get topGenres => _topGenres;
@@ -79,6 +84,10 @@ class AppController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      _isDarkMode = prefs.getBool(_darkModePrefKey) ?? true;
+      SpotifyColors.setDarkMode(_isDarkMode);
+
       await _reloadFromDb();
       if (_songs.isEmpty) {
         final rawJson =
@@ -231,5 +240,13 @@ class AppController extends ChangeNotifier {
   void toggleBatterySaver() {
     _isBatterySaver = !_isBatterySaver;
     notifyListeners();
+  }
+
+  Future<void> toggleTheme() async {
+    _isDarkMode = !_isDarkMode;
+    SpotifyColors.setDarkMode(_isDarkMode);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_darkModePrefKey, _isDarkMode);
   }
 }

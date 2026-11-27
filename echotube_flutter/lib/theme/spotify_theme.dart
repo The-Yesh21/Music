@@ -1,19 +1,44 @@
 import 'package:flutter/material.dart';
 
+/// Cream, Ink Black & Orange editorial palette supporting both Dark and Light themes.
 class SpotifyColors {
   SpotifyColors._();
 
-  static const Color scaffoldBackground = Color(0xFF121212);
-  static const Color surface = Color(0xFF181818);
-  static const Color elevated = Color(0xFF282828);
-  static const Color spotifyGreen = Color(0xFF1DB954);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFB3B3B3);
-  static const Color divider = Color(0xFF2A2A2A);
+  static bool _isDark = true;
+  static bool get isDark => _isDark;
 
+  static void setDarkMode(bool dark) {
+    _isDark = dark;
+  }
+
+  // Core Brand Palette: Cream, Ink Black & Orange
+  static const Color inkBlack = Color(0xFF0E0D0C);
+  static const Color inkSurface = Color(0xFF171513);
+  static const Color inkElevated = Color(0xFF23201C);
+  static const Color cream = Color(0xFFFAF4E8);
+  static const Color creamSurface = Color(0xFFF1E7D5);
+  static const Color creamElevated = Color(0xFFE6D8C0);
+  static const Color orangeDark = Color(0xFFFF6B2C);
+  static const Color orangeLight = Color(0xFFE05216);
+
+  static Color get scaffoldBackground => _isDark ? inkBlack : cream;
+  static Color get surface => _isDark ? inkSurface : creamSurface;
+  static Color get elevated => _isDark ? inkElevated : creamElevated;
+  static Color get spotifyGreen => _isDark ? orangeDark : orangeLight;
+  static Color get orangeAccent => spotifyGreen;
+  static Color get textPrimary => _isDark ? cream : inkBlack;
+  static Color get textSecondary =>
+      _isDark ? const Color(0xFFB9AFA1) : const Color(0xFF5D544B);
+  static Color get divider =>
+      _isDark ? const Color(0xFF2D2924) : const Color(0xFFD8CBB5);
+  static Color get navBarBackground =>
+      _isDark ? const Color(0xF20E0D0C) : const Color(0xF2FAF4E8);
+  static Color get onAccent => _isDark ? inkBlack : cream;
+
+  // Mood Accents harmonized with Cream / Ink Black / Orange
   static const Color happy = Color(0xFFF59E0B);
   static const Color lonely = Color(0xFF6366F1);
-  static const Color enjoyment = Color(0xFFEC4899);
+  static const Color enjoyment = Color(0xFFFF6B2C);
 }
 
 Color moodColor(String category) {
@@ -25,7 +50,7 @@ Color moodColor(String category) {
     case 'enjoyment':
       return SpotifyColors.enjoyment;
     default:
-      return SpotifyColors.spotifyGreen;
+      return SpotifyColors.orangeAccent;
   }
 }
 
@@ -35,7 +60,7 @@ LinearGradient moodGradient(String category) {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      accent.withValues(alpha: 0.55),
+      accent.withValues(alpha: SpotifyColors.isDark ? 0.55 : 0.35),
       SpotifyColors.surface,
       SpotifyColors.scaffoldBackground,
     ],
@@ -43,73 +68,91 @@ LinearGradient moodGradient(String category) {
   );
 }
 
-ThemeData buildSpotifyTheme() {
-  const colorScheme = ColorScheme.dark(
-    primary: SpotifyColors.spotifyGreen,
-    onPrimary: Colors.black,
-    secondary: SpotifyColors.spotifyGreen,
-    onSecondary: Colors.black,
-    surface: SpotifyColors.surface,
-    onSurface: SpotifyColors.textPrimary,
-    surfaceContainerHighest: SpotifyColors.elevated,
-  );
+ThemeData buildSpotifyTheme({bool isDark = true}) {
+  SpotifyColors.setDarkMode(isDark);
+
+  final colorScheme = isDark
+      ? ColorScheme.dark(
+          primary: SpotifyColors.orangeAccent,
+          onPrimary: SpotifyColors.onAccent,
+          secondary: SpotifyColors.orangeAccent,
+          onSecondary: SpotifyColors.onAccent,
+          surface: SpotifyColors.surface,
+          onSurface: SpotifyColors.textPrimary,
+          surfaceContainerHighest: SpotifyColors.elevated,
+        )
+      : ColorScheme.light(
+          primary: SpotifyColors.orangeAccent,
+          onPrimary: SpotifyColors.onAccent,
+          secondary: SpotifyColors.orangeAccent,
+          onSecondary: SpotifyColors.onAccent,
+          surface: SpotifyColors.surface,
+          onSurface: SpotifyColors.textPrimary,
+          surfaceContainerHighest: SpotifyColors.elevated,
+        );
 
   return ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
+    brightness: isDark ? Brightness.dark : Brightness.light,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: SpotifyColors.scaffoldBackground,
     canvasColor: SpotifyColors.scaffoldBackground,
     cardColor: SpotifyColors.surface,
     dividerColor: SpotifyColors.divider,
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       foregroundColor: SpotifyColors.textPrimary,
     ),
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Color(0xEE121212),
-      selectedItemColor: SpotifyColors.textPrimary,
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: SpotifyColors.navBarBackground,
+      selectedItemColor: SpotifyColors.orangeAccent,
       unselectedItemColor: SpotifyColors.textSecondary,
       type: BottomNavigationBarType.fixed,
       elevation: 0,
-      selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+      selectedLabelStyle: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: SpotifyColors.elevated,
-      contentTextStyle: const TextStyle(color: SpotifyColors.textPrimary),
+      contentTextStyle: TextStyle(color: SpotifyColors.textPrimary),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
+    bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: SpotifyColors.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
     ),
     sliderTheme: SliderThemeData(
-      activeTrackColor: SpotifyColors.textPrimary,
+      activeTrackColor: SpotifyColors.orangeAccent,
       inactiveTrackColor: SpotifyColors.textSecondary.withValues(alpha: 0.3),
-      thumbColor: SpotifyColors.textPrimary,
-      overlayColor: SpotifyColors.textPrimary.withValues(alpha: 0.15),
+      thumbColor: SpotifyColors.orangeAccent,
+      overlayColor: SpotifyColors.orangeAccent.withValues(alpha: 0.16),
       trackHeight: 3,
       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: SpotifyColors.elevated,
-      selectedColor: SpotifyColors.spotifyGreen,
-      labelStyle: const TextStyle(
+      selectedColor: SpotifyColors.orangeAccent,
+      labelStyle: TextStyle(
         color: SpotifyColors.textPrimary,
         fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
-      secondaryLabelStyle: const TextStyle(
-        color: Colors.black,
+      secondaryLabelStyle: TextStyle(
+        color: SpotifyColors.onAccent,
         fontSize: 13,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
       ),
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

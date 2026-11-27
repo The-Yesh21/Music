@@ -101,7 +101,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   track.artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: SpotifyColors.textSecondary,
                     fontSize: 13,
                   ),
@@ -109,7 +109,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 const SizedBox(height: 16),
                 ...kCategories.map(
                   (category) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -162,7 +162,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Text(
               'Search',
@@ -219,7 +219,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     },
                   )
                 : _isSearching
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
                           color: SpotifyColors.spotifyGreen,
                         ),
@@ -231,14 +231,14 @@ class _SearchScreenState extends State<SearchScreen> {
                               child: Text(
                                 _error!,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: SpotifyColors.textSecondary,
                                 ),
                               ),
                             ),
                           )
                         : _results.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Text(
                                   'No matching tracks found',
                                   style: TextStyle(
@@ -279,19 +279,19 @@ class _BrowseMoodsGrid extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final cards = <_BrowseCardData>[
-          const _BrowseCardData(
+          _BrowseCardData(
             title: 'Happy',
             subtitle: 'Play mood mix',
             color: SpotifyColors.happy,
             isMood: true,
           ),
-          const _BrowseCardData(
+          _BrowseCardData(
             title: 'Lonely',
             subtitle: 'Play mood mix',
             color: SpotifyColors.lonely,
             isMood: true,
           ),
-          const _BrowseCardData(
+          _BrowseCardData(
             title: 'Enjoyment',
             subtitle: 'Play mood mix',
             color: SpotifyColors.enjoyment,
@@ -310,7 +310,7 @@ class _BrowseMoodsGrid extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
           children: [
-            const Text(
+            Text(
               'Browse Moods & Genres',
               style: TextStyle(
                 color: SpotifyColors.textPrimary,
@@ -436,7 +436,7 @@ class _SearchTrackTile extends StatelessWidget {
         track.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           color: SpotifyColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
@@ -445,9 +445,9 @@ class _SearchTrackTile extends StatelessWidget {
         track.artist,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: SpotifyColors.textSecondary),
+        style: TextStyle(color: SpotifyColors.textSecondary),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.add_circle_outline_rounded,
         color: SpotifyColors.textSecondary,
       ),
@@ -457,7 +457,7 @@ class _SearchTrackTile extends StatelessWidget {
   Widget _fallback() {
     return Container(
       color: SpotifyColors.elevated,
-      child: const Icon(
+      child: Icon(
         Icons.music_note_rounded,
         color: SpotifyColors.textSecondary,
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
+import 'artist_album_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -26,7 +27,7 @@ class HomeScreen extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         if (controller.isLoading) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(color: SpotifyColors.spotifyGreen),
           );
         }
@@ -36,6 +37,7 @@ class HomeScreen extends StatelessWidget {
             ? controller.mostPlayed
             : controller.songs.take(12).toList();
         final tasteMixes = _buildTasteMixes();
+        final artistAlbums = _buildArtistAlbums();
 
         return CustomScrollView(
           slivers: [
@@ -49,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           _greeting(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: SpotifyColors.textPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
@@ -87,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                                 )
                                 .toList(),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 5,
                               ),
@@ -98,7 +100,7 @@ class HomeScreen extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.graphic_eq_rounded,
                                     size: 14,
                                     color: SpotifyColors.spotifyGreen,
@@ -123,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                             ? null
                             : controller.syncNow,
                         icon: controller.isSyncing
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
@@ -135,11 +137,23 @@ class HomeScreen extends StatelessWidget {
                         tooltip: 'Sync Cloud',
                       ),
                       IconButton(
+                        onPressed: controller.toggleTheme,
+                        icon: Icon(
+                          controller.isDarkMode
+                              ? Icons.wb_sunny_outlined
+                              : Icons.nightlight_round,
+                          color: SpotifyColors.orangeAccent,
+                        ),
+                        tooltip: controller.isDarkMode
+                            ? 'Switch to Cream Light Theme'
+                            : 'Switch to Ink Dark Theme',
+                      ),
+                      IconButton(
                         onPressed: controller.toggleBatterySaver,
                         icon: Icon(
                           controller.isBatterySaver
                               ? Icons.battery_saver
-                              : Icons.dark_mode_outlined,
+                              : Icons.battery_std_rounded,
                           color: controller.isBatterySaver
                               ? SpotifyColors.spotifyGreen
                               : SpotifyColors.textPrimary,
@@ -170,7 +184,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   _QuickPickTile(
                     title: 'Offline Downloads',
-                    accent: const Color(0xFF10B981),
+                    accent: Color(0xFF10B981),
                     icon: Icons.download_done_rounded,
                     imageUrl: controller.downloadedSongs.firstOrNull?.imageUrl,
                     onTap: () => controller.playDownloaded(shuffle: true),
@@ -237,6 +251,41 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (artistAlbums.isNotEmpty) ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              const SliverToBoxAdapter(
+                child: _SectionHeader(title: 'Artist Albums For Your Taste'),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 204,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: artistAlbums.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (_, index) {
+                      final album = artistAlbums[index];
+                      return _ArtistAlbumCard(
+                        album: album,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ArtistAlbumScreen(
+                                artistName: album.artistName,
+                                controller: controller,
+                                localSongs: album.songs,
+                                accent: album.accent,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
             if (recentlyPlayed.isNotEmpty) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 22)),
               const SliverToBoxAdapter(
@@ -340,6 +389,59 @@ class HomeScreen extends StatelessWidget {
 
     return mixes;
   }
+
+  List<_ArtistAlbum> _buildArtistAlbums() {
+    final orderedArtists = <String>[];
+    final seen = <String>{};
+
+    void addArtistsFrom(Iterable<Song> songs) {
+      for (final song in songs) {
+        for (final raw in song.artist.split(',')) {
+          final name = raw.trim();
+          if (name.isEmpty) continue;
+          final lower = name.toLowerCase();
+          if (seen.add(lower)) {
+            orderedArtists.add(name);
+          }
+        }
+      }
+    }
+
+    // Prioritize artists from the user's played and liked tracks first.
+    addArtistsFrom(controller.mostPlayed);
+    addArtistsFrom(controller.likedSongs);
+    for (final artist in controller.topArtists) {
+      final name = artist.trim();
+      if (name.isNotEmpty && seen.add(name.toLowerCase())) {
+        orderedArtists.add(name);
+      }
+    }
+
+    final albums = <_ArtistAlbum>[];
+    for (final artist in orderedArtists.take(10)) {
+      final lower = artist.toLowerCase();
+      final artistSongs = controller.songs
+          .where((s) => s.artist.toLowerCase().contains(lower))
+          .toList();
+      if (artistSongs.isEmpty) continue;
+
+      final imageUrl = artistSongs
+          .map((s) => s.imageUrl)
+          .whereType<String>()
+          .where((u) => u.trim().isNotEmpty)
+          .firstOrNull;
+
+      albums.add(
+        _ArtistAlbum(
+          artistName: artist,
+          accent: moodColor(artistSongs.first.category),
+          imageUrl: imageUrl,
+          songs: artistSongs,
+        ),
+      );
+    }
+    return albums;
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -353,7 +455,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           color: SpotifyColors.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.w700,
@@ -409,7 +511,7 @@ class _QuickPickTile extends StatelessWidget {
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: SpotifyColors.textPrimary,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -494,27 +596,31 @@ class _TasteMixCard extends StatelessWidget {
                 ),
                 Positioned(
                   left: 8,
+                  right: 8,
                   bottom: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: mix.accent.withValues(alpha: 0.8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
                       ),
-                    ),
-                    child: Text(
-                      mix.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: SpotifyColors.textPrimary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+                      decoration: BoxDecoration(
+                        color: SpotifyColors.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: mix.accent.withValues(alpha: 0.85),
+                        ),
+                      ),
+                      child: Text(
+                        mix.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: SpotifyColors.textPrimary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -526,7 +632,7 @@ class _TasteMixCard extends StatelessWidget {
               mix.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: SpotifyColors.textSecondary,
                 fontSize: 12,
                 height: 1.3,
@@ -600,7 +706,7 @@ class _SongShelfCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: SpotifyColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -611,7 +717,7 @@ class _SongShelfCard extends StatelessWidget {
               song.artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: SpotifyColors.textSecondary,
                 fontSize: 11.5,
               ),
@@ -629,6 +735,126 @@ class _SongShelfCard extends StatelessWidget {
         Icons.music_note_rounded,
         color: accent,
         size: 42,
+      ),
+    );
+  }
+}
+
+class _ArtistAlbum {
+  const _ArtistAlbum({
+    required this.artistName,
+    required this.accent,
+    required this.imageUrl,
+    required this.songs,
+  });
+
+  final String artistName;
+  final Color accent;
+  final String? imageUrl;
+  final List<Song> songs;
+}
+
+class _ArtistAlbumCard extends StatelessWidget {
+  const _ArtistAlbumCard({
+    required this.album,
+    required this.onTap,
+  });
+
+  final _ArtistAlbum album;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = album.imageUrl?.trim() ?? '';
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 146,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 146,
+                height: 146,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      album.accent.withValues(alpha: 0.78),
+                      SpotifyColors.elevated,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (url.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: url,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => SizedBox.shrink(),
+                      )
+                    else
+                      Center(
+                        child: Icon(
+                          Icons.album_rounded,
+                          color: SpotifyColors.textPrimary.withValues(alpha: 0.85),
+                          size: 46,
+                        ),
+                      ),
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'ALBUM',
+                          style: TextStyle(
+                            color: SpotifyColors.spotifyGreen,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${album.artistName} Mix',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: SpotifyColors.textPrimary,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${album.songs.length} saved • Tap for playlist',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: SpotifyColors.textSecondary,
+                fontSize: 11.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

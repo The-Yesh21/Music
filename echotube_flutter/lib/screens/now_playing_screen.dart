@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
+import '../widgets/elastic_slider.dart';
 
 class NowPlayingScreen extends StatelessWidget {
   const NowPlayingScreen({
@@ -122,7 +123,7 @@ class _TopBar extends StatelessWidget {
                 'PLAYING FROM ${song.category.toUpperCase()}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: SpotifyColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -132,7 +133,7 @@ class _TopBar extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 song.isDownloaded ? 'Offline Cached' : 'EchoTube Stream',
-                style: const TextStyle(
+                style: TextStyle(
                   color: SpotifyColors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -178,15 +179,15 @@ class _TopBar extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
+                  color: SpotifyColors.elevated.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.16),
+                    color: SpotifyColors.divider,
                   ),
                 ),
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: SpotifyColors.textPrimary,
@@ -286,7 +287,7 @@ class _TrackHeader extends StatelessWidget {
                 song.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: SpotifyColors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -297,7 +298,7 @@ class _TrackHeader extends StatelessWidget {
                 song.artist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: SpotifyColors.textSecondary,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
@@ -362,12 +363,16 @@ class _SeekBarState extends State<_SeekBar> {
 
             return Column(
               children: [
-                Slider(
+                ElasticSlider(
                   value: maxMs > 0 ? currentMs.clamp(0.0, maxMs) : 0.0,
+                  min: 0.0,
                   max: maxMs > 0 ? maxMs : 1.0,
+                  formatValue: (v) => _format(
+                    Duration(milliseconds: v.round()),
+                  ),
                   onChanged: maxMs > 0
                       ? (v) => setState(() => _dragValue = v)
-                      : null,
+                      : (_) {},
                   onChangeEnd: maxMs > 0
                       ? (v) {
                           setState(() => _dragValue = null);
@@ -386,14 +391,14 @@ class _SeekBarState extends State<_SeekBar> {
                               ? Duration(milliseconds: _dragValue!.round())
                               : position,
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: SpotifyColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
                       Text(
                         _format(duration),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: SpotifyColors.textSecondary,
                           fontSize: 12,
                         ),
@@ -440,7 +445,7 @@ class _PlaybackControls extends StatelessWidget {
         ),
         IconButton(
           onPressed: handler.skipToPrevious,
-          icon: const Icon(
+          icon: Icon(
             Icons.skip_previous_rounded,
             color: SpotifyColors.textPrimary,
             size: 38,
@@ -458,7 +463,7 @@ class _PlaybackControls extends StatelessWidget {
                 return Container(
                   width: 66,
                   height: 66,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: SpotifyColors.textPrimary,
                     shape: BoxShape.circle,
                   ),
@@ -494,7 +499,7 @@ class _PlaybackControls extends StatelessWidget {
         ),
         IconButton(
           onPressed: handler.skipToNext,
-          icon: const Icon(
+          icon: Icon(
             Icons.skip_next_rounded,
             color: SpotifyColors.textPrimary,
             size: 38,
@@ -576,7 +581,7 @@ class _BottomActions extends StatelessWidget {
           ),
         IconButton(
           onPressed: () => _showQueueSheet(context),
-          icon: const Icon(
+          icon: Icon(
             Icons.queue_music_rounded,
             color: SpotifyColors.textSecondary,
           ),
@@ -614,7 +619,7 @@ class _BottomActions extends StatelessWidget {
                 final currentKey = handler.currentSongNotifier.value?.songKey;
                 return Column(
                   children: [
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
                       width: 40,
                       height: 4,
@@ -637,7 +642,7 @@ class _BottomActions extends StatelessWidget {
                           const Spacer(),
                           Text(
                             '${queue.length} tracks',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: SpotifyColors.textSecondary,
                               fontSize: 13,
                             ),
@@ -647,7 +652,7 @@ class _BottomActions extends StatelessWidget {
                     ),
                     Expanded(
                       child: queue.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'Queue is empty',
                                 style: TextStyle(
@@ -687,7 +692,7 @@ class _BottomActions extends StatelessWidget {
                                     item.artist,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: SpotifyColors.textSecondary,
                                     ),
                                   ),

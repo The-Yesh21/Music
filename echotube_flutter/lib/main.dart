@@ -23,8 +23,10 @@ Future<void> main() async {
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.echotube.channel.audio',
       androidNotificationChannelName: 'EchoTube Playback',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
+      androidNotificationIcon: 'mipmap/ic_launcher',
+      androidNotificationOngoing: false,
+      androidStopForegroundOnPause: false,
+      androidShowNotificationBadge: true,
     ),
   );
 
@@ -47,11 +49,16 @@ class EchoTubeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EchoTube',
-      debugShowCheckedModeBanner: false,
-      theme: buildSpotifyTheme(),
-      home: _EchoTubeShell(controller: controller),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'EchoTube',
+          debugShowCheckedModeBanner: false,
+          theme: buildSpotifyTheme(isDark: controller.isDarkMode),
+          home: _EchoTubeShell(controller: controller),
+        );
+      },
     );
   }
 }

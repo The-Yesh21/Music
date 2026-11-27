@@ -10,6 +10,7 @@ import '../services/audio_player_service.dart';
 import '../services/cloud_sync_service.dart';
 import '../services/jiosaavn_service.dart';
 import '../services/offline_download_service.dart';
+import '../services/youtube_playlist_service.dart';
 import '../theme/spotify_theme.dart';
 
 String audioQualityLabel(AudioQuality quality) {
@@ -242,6 +243,72 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     unawaited(CloudSyncService.instance.pushSongToCloud(song));
     return song;
+  }
+
+  /// Imports YouTube playlist tracks that are not already in SQLite (including removed),
+  /// resolving stream URLs & artwork via JioSaavn and pushing to cloud.
+  Future<int> importYouTubeTracks(
+    List<YouTubePlaylistTrack> tracks,
+    String category, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    if (tracks.isEmpty) return 0;
+
+    final allExisting = await db.getAllSongs(includeRemoved: true);
+    final toInsert = <Song>[];
+    final quality = audioHandler.qualityNotifier.value;
+    var done = 0;
+
+    for (final yt in tracks) {
+      if (YouTubePlaylistService.isDuplicateTrack(yt, allExisting)) {
+        done += 1;
+        onProgress?.call(done, tracks.length);
+        continue;
+      }
+
+      var song = Song(
+        songKey: yt.songKey,
+        title: yt.title,
+        artist: yt.artist,
+        mood: 'Imported',
+        genre: 'YouTube',
+        category: category,
+        imageUrl: yt.thumbnailUrl,
+        isNew: true,
+        isCustom: true,
+        pendingSync: true,
+        createdAt: DateTime.now().millisecondsSinceEpoch + done,
+      );
+
+      try {
+        final resolved = await JioSaavnService.instance.resolveTrackForSong(song);
+        if (resolved != null) {
+          song = song.copyWith(
+            streamUrl: resolved.bestUrlForQuality(quality),
+            imageUrl: resolved.imageUrl ?? song.imageUrl,
+            apiId: resolved.id,
+          );
+        }
+      } catch (_) {
+        // Keep metadata even if JioSaavn resolution fails offline; it resolves on play.
+      }
+
+      toInsert.add(song);
+      allExisting.add(song);
+      done += 1;
+      onProgress?.call(done, tracks.length);
+    }
+
+    if (toInsert.isNotEmpty) {
+      await db.upsertSongs(toInsert);
+      await _reloadFromDb();
+      notifyListeners();
+      for (final s in toInsert) {
+        unawaited(CloudSyncService.instance.pushSongToCloud(s));
+      }
+    }
+
+    return toInsert.length;
   }
 
   Future<void> downloadSong(Song song) async {

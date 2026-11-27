@@ -57,6 +57,7 @@ class EchoTubeAudioHandler extends BaseAudioHandler
       final current = mediaItem.value;
       if (current != null && duration != null && current.duration != duration) {
         mediaItem.add(current.copyWith(duration: duration));
+        _broadcastPlaybackState();
       }
     });
   }
@@ -412,6 +413,12 @@ class EchoTubeAudioHandler extends BaseAudioHandler
           MediaControl.stop,
         ],
         systemActions: const <MediaAction>{
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.playPause,
+          MediaAction.stop,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
           MediaAction.seek,
           MediaAction.seekForward,
           MediaAction.seekBackward,

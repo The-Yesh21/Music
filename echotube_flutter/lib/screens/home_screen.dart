@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
 import '../widgets/card_stack.dart';
+import '../widgets/youtube_import_sheet.dart';
 import 'artist_album_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -195,7 +196,73 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 18)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Material(
+                  color: SpotifyColors.elevated,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => showYouTubeImportSheet(context, controller),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: SpotifyColors.orangeAccent
+                                  .withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.playlist_add_rounded,
+                              color: SpotifyColors.orangeAccent,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Add YouTube Playlist',
+                                  style: TextStyle(
+                                    color: SpotifyColors.textPrimary,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'Paste a link • Auto-skips songs already in library',
+                                  style: TextStyle(
+                                    color: SpotifyColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16,
+                            color: SpotifyColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 14)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(

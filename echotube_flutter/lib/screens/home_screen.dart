@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../state/app_controller.dart';
 import '../theme/spotify_theme.dart';
+import '../widgets/card_stack.dart';
 import 'artist_album_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -34,6 +35,7 @@ class HomeScreen extends StatelessWidget {
 
         final recentlyPlayed = controller.recentlyPlayed;
         final newlyAdded = controller.newlyAddedSongs;
+        final walkInStack = controller.walkInStackSongs;
         final topRotation = controller.mostPlayed.isNotEmpty
             ? controller.mostPlayed
             : controller.songs.take(12).toList();
@@ -166,6 +168,34 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: StreamBuilder<bool>(
+                stream: controller.audioHandler.playingStream,
+                initialData: controller.audioHandler.isPlaying,
+                builder: (context, playSnap) {
+                  return ValueListenableBuilder<Song?>(
+                    valueListenable: controller.audioHandler.currentSongNotifier,
+                    builder: (context, currentSong, _) {
+                      return SongCardStack(
+                        songs: walkInStack,
+                        currentSong: currentSong,
+                        isPlaying: playSnap.data ?? false,
+                        onPlaySong: (song, queue) =>
+                            controller.playSong(song, queue: queue),
+                        onTogglePlay: () {
+                          if (controller.audioHandler.isPlaying) {
+                            controller.audioHandler.pause();
+                          } else {
+                            controller.audioHandler.play();
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(

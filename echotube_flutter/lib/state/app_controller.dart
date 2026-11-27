@@ -62,6 +62,27 @@ class AppController extends ChangeNotifier {
     return added.take(20).toList();
   }
 
+  /// Builds a 15-20 song stack prioritized by newly added, liked, and most-played taste.
+  List<Song> get walkInStackSongs {
+    final seen = <String>{};
+    final stack = <Song>[];
+
+    void addUnique(Iterable<Song> source) {
+      for (final s in source) {
+        if (stack.length >= 18) return;
+        if (!s.isRemoved && seen.add(s.songKey)) {
+          stack.add(s);
+        }
+      }
+    }
+
+    addUnique(newlyAddedSongs);
+    addUnique(likedSongs);
+    addUnique(mostPlayed);
+    addUnique(_songs);
+    return stack;
+  }
+
   List<Song> get recentlyPlayed {
     final played = _songs
         .where((s) => !s.isRemoved && s.lastPlayedAt != null)
@@ -106,6 +127,12 @@ class AppController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+
+    // Auto-start the walk-in stack if nothing is currently playing.
+    final stack = walkInStackSongs;
+    if (audioHandler.currentSongNotifier.value == null && stack.isNotEmpty) {
+      unawaited(audioHandler.playQueue(stack, startIndex: 0, shuffle: false));
     }
 
     unawaited(syncNow());

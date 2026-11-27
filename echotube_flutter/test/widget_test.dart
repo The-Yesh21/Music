@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:echotube_flutter/data/database_helper.dart';
 import 'package:echotube_flutter/models/song.dart';
 import 'package:echotube_flutter/services/jiosaavn_service.dart';
+import 'package:echotube_flutter/services/youtube_playlist_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -140,6 +141,58 @@ void main() {
       expect(track.bestUrlForQuality(AudioQuality.high), 'https://example.com/320.mp4');
       expect(track.bestUrlForQuality(AudioQuality.balanced), 'https://example.com/160.mp4');
       expect(track.bestUrlForQuality(AudioQuality.saver), 'https://example.com/96.mp4');
+    });
+  });
+
+  group('YouTubePlaylistService', () {
+    test('extractPlaylistId parses URLs and raw IDs', () {
+      expect(
+        YouTubePlaylistService.extractPlaylistId(
+          'https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+        ),
+        'PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+      );
+      expect(
+        YouTubePlaylistService.extractPlaylistId(
+          'https://music.youtube.com/watch?v=abc123&list=OLAK5uy_k1234567890',
+        ),
+        'OLAK5uy_k1234567890',
+      );
+      expect(YouTubePlaylistService.extractPlaylistId('invalid'), isNull);
+    });
+
+    test('parses ytInitialData and detects duplicates against existing library', () {
+      const html = '''
+      <html><script>var ytInitialData = {"contents":{"playlistVideoRenderer":{"videoId":"v1","title":{"runs":[{"text":"The Local Train - Choo Lo (Official Video)"}]},"shortBylineText":{"runs":[{"text":"The Local Train - Topic"}]}}},"extra":{"playlistVideoRenderer":{"videoId":"v2","title":{"runs":[{"text":"New Song (Lyrics)"}]},"shortBylineText":{"runs":[{"text":"Indie Artist"}]}}}}; </script></html>
+      ''';
+
+      final parsed = YouTubePlaylistService.parsePlaylistTracksFromHtml(html);
+      expect(parsed.length, 2);
+      expect(parsed[0].title, 'Choo Lo');
+      expect(parsed[0].artist, 'The Local Train');
+      expect(parsed[1].title, 'New Song');
+      expect(parsed[1].artist, 'Indie Artist');
+
+      final existing = [
+        Song(
+          songKey: Song.computeKey('Choo Lo', 'The Local Train'),
+          title: 'Choo Lo',
+          artist: 'The Local Train',
+          mood: 'Nostalgic',
+          genre: 'Indie Rock',
+          category: 'Lonely',
+          createdAt: 1000,
+        ),
+      ];
+
+      expect(
+        YouTubePlaylistService.isDuplicateTrack(parsed[0], existing),
+        isTrue,
+      );
+      expect(
+        YouTubePlaylistService.isDuplicateTrack(parsed[1], existing),
+        isFalse,
+      );
     });
   });
 }

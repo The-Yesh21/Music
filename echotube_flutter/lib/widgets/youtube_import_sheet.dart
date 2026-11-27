@@ -177,7 +177,7 @@ class _YouTubeImportSheetState extends State<_YouTubeImportSheet> {
                     controller: _urlController,
                     style: TextStyle(color: SpotifyColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Paste YouTube playlist URL...',
+                      hintText: 'Paste YouTube playlist or Mix link...',
                       hintStyle: TextStyle(color: SpotifyColors.textSecondary),
                       filled: true,
                       fillColor: SpotifyColors.elevated,

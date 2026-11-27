@@ -194,5 +194,28 @@ void main() {
         isFalse,
       );
     });
+
+    test('detects RD Mix playlist IDs and preserves seed video ID', () {
+      const mixUrl =
+          'https://www.youtube.com/watch?v=pyGU-UudvrM&list=RDpyGU-UudvrM&start_radio=1';
+      final parsed = YouTubePlaylistService.parsePlaylistInput(mixUrl);
+      expect(parsed, isNotNull);
+      expect(parsed!.playlistId, 'RDpyGU-UudvrM');
+      expect(parsed.videoId, 'pyGU-UudvrM');
+      expect(YouTubePlaylistService.isMixPlaylistId(parsed.playlistId), isTrue);
+      expect(
+        YouTubePlaylistService.isMixPlaylistId('PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI'),
+        isFalse,
+      );
+
+      const mixHtml = '''
+      <html><script>var ytInitialData = {"contents":{"playlistPanelVideoRenderer":{"videoId":"pyGU-UudvrM","title":{"simpleText":"She & Him - I Thought I Saw Your Face Today (Official Lyric Video)"},"shortBylineText":{"runs":[{"text":"SheandHimOfficial"}]}}}}; </script></html>
+      ''';
+      final mixTracks = YouTubePlaylistService.parsePlaylistTracksFromHtml(mixHtml);
+      expect(mixTracks.length, 1);
+      expect(mixTracks.first.videoId, 'pyGU-UudvrM');
+      expect(mixTracks.first.title, 'I Thought I Saw Your Face Today');
+      expect(mixTracks.first.artist, 'She & Him');
+    });
   });
 }

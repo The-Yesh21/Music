@@ -25,6 +25,8 @@ class YouTubePlaylistService {
 
   static final YouTubePlaylistService instance = YouTubePlaylistService._();
 
+  static const int maxMixTracks = 50;
+
   static const Map<String, String> _headers = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -32,35 +34,79 @@ class YouTubePlaylistService {
     'Accept-Language': 'en-US,en;q=0.9',
   };
 
+  /// Returns true if [playlistId] is a dynamic YouTube Mix / Radio (`RD...`).
+  static bool isMixPlaylistId(String playlistId) =>
+      playlistId.trim().toUpperCase().startsWith('RD');
+
   /// Extracts a YouTube playlist ID from a full URL or raw playlist ID.
-  static String? extractPlaylistId(String input) {
+  static String? extractPlaylistId(String input) =>
+      parsePlaylistInput(input)?.playlistId;
+
+  /// Parses playlist ID, optional seed video ID, and original watch URL.
+  static ({String playlistId, String? videoId, Uri? originalUri})?
+      parsePlaylistInput(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return null;
 
     final uri = Uri.tryParse(trimmed);
-    if (uri != null && uri.queryParameters.containsKey('list')) {
-      final id = uri.queryParameters['list']?.trim();
-      if (id != null && id.isNotEmpty) return id;
+    String? playlistId;
+    String? videoId;
+
+    if (uri != null && uri.hasScheme) {
+      playlistId = uri.queryParameters['list']?.trim();
+      videoId = uri.queryParameters['v']?.trim();
+      if ((videoId == null || videoId.isEmpty) &&
+          uri.host.contains('youtu.be') &&
+          uri.pathSegments.isNotEmpty) {
+        videoId = uri.pathSegments.first.trim();
+      }
     }
 
-    final match = RegExp(r'[?&]list=([a-zA-Z0-9_-]+)').firstMatch(trimmed);
-    if (match != null) return match.group(1);
-
-    if (RegExp(r'^[a-zA-Z0-9_-]{10,}$').hasMatch(trimmed)) {
-      return trimmed;
+    if (playlistId == null || playlistId.isEmpty) {
+      final match = RegExp(r'[?&]list=([a-zA-Z0-9_-]+)').firstMatch(trimmed);
+      if (match != null) {
+        playlistId = match.group(1);
+      } else if (RegExp(r'^[a-zA-Z0-9_-]{10,}$').hasMatch(trimmed)) {
+        playlistId = trimmed;
+      }
     }
-    return null;
+
+    if (playlistId == null || playlistId.isEmpty) return null;
+
+    if ((videoId == null || videoId.isEmpty)) {
+      final vMatch = RegExp(r'[?&]v=([a-zA-Z0-9_-]{6,})').firstMatch(trimmed);
+      if (vMatch != null) {
+        videoId = vMatch.group(1);
+      } else if (isMixPlaylistId(playlistId) && playlistId.length >= 13) {
+        // RD<11-char videoId> mixes encode the seed video ID right after "RD".
+        videoId = playlistId.substring(2, 13);
+      }
+    }
+
+    return (
+      playlistId: playlistId,
+      videoId: (videoId != null && videoId.isNotEmpty) ? videoId : null,
+      originalUri: (uri != null && uri.hasScheme) ? uri : null,
+    );
   }
 
-  /// Fetches and parses tracks from a public/unlisted YouTube playlist URL.
+  /// Fetches and parses tracks from a standard YouTube playlist or an `RD...` Mix.
   Future<List<YouTubePlaylistTrack>> fetchPlaylistTracks(String urlOrId) async {
-    final playlistId = extractPlaylistId(urlOrId);
-    if (playlistId == null) {
-      throw ArgumentError('Invalid YouTube playlist link or ID.');
+    final parsed = parsePlaylistInput(urlOrId);
+    if (parsed == null) {
+      throw ArgumentError('Invalid YouTube playlist or Mix link.');
+    }
+
+    if (isMixPlaylistId(parsed.playlistId)) {
+      return _fetchMixTracks(
+        playlistId: parsed.playlistId,
+        seedVideoId: parsed.videoId,
+        originalUri: parsed.originalUri,
+      );
     }
 
     final url = Uri.parse(
-      'https://www.youtube.com/playlist?list=${Uri.encodeQueryComponent(playlistId)}&hl=en',
+      'https://www.youtube.com/playlist?list=${Uri.encodeQueryComponent(parsed.playlistId)}&hl=en',
     );
     final response = await http
         .get(url, headers: _headers)
@@ -81,7 +127,93 @@ class YouTubePlaylistService {
     return tracks;
   }
 
-  /// Parses `ytInitialData` from a YouTube playlist HTML page.
+  Future<List<YouTubePlaylistTrack>> _fetchMixTracks({
+    required String playlistId,
+    required String? seedVideoId,
+    required Uri? originalUri,
+  }) async {
+    final firstUri = _buildMixWatchUri(
+      playlistId: playlistId,
+      videoId: seedVideoId,
+      originalUri: originalUri,
+    );
+
+    final collected = <YouTubePlaylistTrack>[];
+    final seenVideoIds = <String>{};
+    final seenKeys = <String>{};
+
+    Uri? nextUri = firstUri;
+    for (var hop = 0; hop < 3 && collected.length < maxMixTracks && nextUri != null; hop++) {
+      final response = await http
+          .get(nextUri, headers: _headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (collected.isNotEmpty) break;
+        throw StateError(
+          'Failed to load YouTube Mix (HTTP ${response.statusCode}).',
+        );
+      }
+
+      final batch = parsePlaylistTracksFromHtml(response.body);
+      if (batch.isEmpty) break;
+
+      var addedInHop = 0;
+      for (final track in batch) {
+        if (collected.length >= maxMixTracks) break;
+        if (track.videoId.isNotEmpty && !seenVideoIds.add(track.videoId)) {
+          continue;
+        }
+        if (!seenKeys.add(track.songKey)) continue;
+        collected.add(track);
+        addedInHop += 1;
+      }
+
+      if (collected.length >= maxMixTracks || addedInHop == 0) break;
+
+      final lastVideoId = batch.last.videoId;
+      if (lastVideoId.isEmpty) break;
+      nextUri = Uri.parse(
+        'https://www.youtube.com/watch?v=${Uri.encodeQueryComponent(lastVideoId)}'
+        '&list=${Uri.encodeQueryComponent(playlistId)}'
+        '&index=${collected.length}&hl=en',
+      );
+    }
+
+    if (collected.isEmpty) {
+      throw StateError(
+        'Could not extract tracks from this YouTube Mix. Try opening the song in YouTube and copying its Mix link.',
+      );
+    }
+    return collected;
+  }
+
+  Uri _buildMixWatchUri({
+    required String playlistId,
+    required String? videoId,
+    required Uri? originalUri,
+  }) {
+    if (originalUri != null && originalUri.path.contains('/watch')) {
+      final params = Map<String, String>.from(originalUri.queryParameters);
+      params['list'] = playlistId;
+      if (videoId != null && videoId.isNotEmpty) {
+        params['v'] = videoId;
+      }
+      params.putIfAbsent('start_radio', () => '1');
+      params['hl'] = 'en';
+      return Uri.https('www.youtube.com', '/watch', params);
+    }
+
+    final params = <String, String>{
+      if (videoId != null && videoId.isNotEmpty) 'v': videoId,
+      'list': playlistId,
+      'start_radio': '1',
+      'hl': 'en',
+    };
+    return Uri.https('www.youtube.com', '/watch', params);
+  }
+
+  /// Parses `ytInitialData` from either a `/playlist` page or a `/watch` Mix page.
   static List<YouTubePlaylistTrack> parsePlaylistTracksFromHtml(String html) {
     final jsonText = _extractYtInitialDataJson(html);
     if (jsonText == null) return const [];
@@ -170,7 +302,7 @@ class YouTubePlaylistService {
     var title = rawTitle
         .replaceAll(
           RegExp(
-            r'\s*[\(\[](?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?|visualizer|mv)|lyrics?|hd|4k|full\s*song|audio)[\)\]]',
+            r'\s*[\(\[](?:official\s*(?:music\s*|lyric\s*)?(?:video|audio|lyrics?|visualizer|mv)|lyrics?|hd|4k|full\s*song|audio)[\)\]]',
             caseSensitive: false,
           ),
           '',
@@ -244,12 +376,14 @@ class YouTubePlaylistService {
     List<Map<String, dynamic>> out,
   ) {
     if (node is Map) {
-      if (node.containsKey('playlistVideoRenderer') &&
-          node['playlistVideoRenderer'] is Map) {
-        out.add(
-          Map<String, dynamic>.from(node['playlistVideoRenderer'] as Map),
-        );
-        return;
+      for (final key in const [
+        'playlistVideoRenderer',
+        'playlistPanelVideoRenderer',
+      ]) {
+        if (node.containsKey(key) && node[key] is Map) {
+          out.add(Map<String, dynamic>.from(node[key] as Map));
+          return;
+        }
       }
       for (final value in node.values) {
         _collectPlaylistRenderers(value, out);

@@ -310,25 +310,26 @@ class _StackCardFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = song.imageUrl?.trim() ?? '';
 
-    return Container(
-      width: 224,
-      height: 224,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isTop
-              ? accent.withValues(alpha: 0.75)
-              : SpotifyColors.divider,
-          width: isTop ? 1.5 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isTop ? 0.42 : 0.25),
-            blurRadius: isTop ? 24 : 12,
-            offset: const Offset(0, 10),
+    return RepaintBoundary(
+      child: Container(
+        width: 224,
+        height: 224,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isTop
+                ? accent.withValues(alpha: 0.75)
+                : SpotifyColors.divider,
+            width: isTop ? 1.5 : 1.0,
           ),
-        ],
-      ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isTop ? 0.35 : 0.2),
+              blurRadius: isTop ? 12 : 6,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         fit: StackFit.expand,
@@ -426,6 +427,7 @@ class _StackCardFace extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

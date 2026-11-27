@@ -88,47 +88,49 @@ class _DynamicIslandBarState extends State<DynamicIslandBar>
                             ),
                           );
                         },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutBack,
-                          width: _expanded ? double.infinity : 256,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _expanded ? 14 : 10,
-                            vertical: _expanded ? 12 : 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: SpotifyColors.inkBlack,
-                            borderRadius:
-                                BorderRadius.circular(_expanded ? 24 : 999),
-                            border: Border.all(
-                              color: accent.withValues(
-                                alpha: isPlaying ? 0.85 : 0.4,
-                              ),
-                              width: 1.2,
+                        child: RepaintBoundary(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOutCubic,
+                            width: _expanded
+                                ? MediaQuery.sizeOf(context).width - 28
+                                : 256,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _expanded ? 14 : 10,
+                              vertical: _expanded ? 12 : 7,
                             ),
-                            boxShadow: [
-                              BoxShadow(
+                            decoration: BoxDecoration(
+                              color: SpotifyColors.inkBlack,
+                              borderRadius:
+                                  BorderRadius.circular(_expanded ? 24 : 999),
+                              border: Border.all(
                                 color: accent.withValues(
-                                  alpha: isPlaying ? 0.22 : 0.08,
+                                  alpha: isPlaying ? 0.85 : 0.4,
                                 ),
-                                blurRadius: 18,
-                                offset: const Offset(0, 6),
+                                width: 1.2,
                               ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.45),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: AnimatedSize(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              child: _expanded
+                                  ? _buildExpanded(
+                                      context,
+                                      liveSong,
+                                      accent,
+                                      isPlaying,
+                                    )
+                                  : _buildCompact(liveSong, accent, isPlaying),
+                            ),
                           ),
-                          child: _expanded
-                              ? _buildExpanded(
-                                  context,
-                                  liveSong,
-                                  accent,
-                                  isPlaying,
-                                )
-                              : _buildCompact(liveSong, accent, isPlaying),
                         ),
                       ),
                     ),
@@ -166,10 +168,12 @@ class _DynamicIslandBarState extends State<DynamicIslandBar>
           ),
         ),
         const SizedBox(width: 8),
-        _LiveWaveform(
-          controller: _waveCtrl,
-          isPlaying: isPlaying,
-          color: SpotifyColors.orangeDark,
+        RepaintBoundary(
+          child: _LiveWaveform(
+            controller: _waveCtrl,
+            isPlaying: isPlaying,
+            color: SpotifyColors.orangeDark,
+          ),
         ),
       ],
     );

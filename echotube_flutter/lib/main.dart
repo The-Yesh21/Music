@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'data/database_helper.dart';
 import 'screens/home_screen.dart';
@@ -15,6 +16,9 @@ import 'widgets/mini_player.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   final audioHandler = await AudioService.init(
     builder: () => EchoTubeAudioHandler(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -26,6 +27,7 @@ class _DynamicIslandBarState extends State<DynamicIslandBar>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
   late final AnimationController _waveCtrl;
+  StreamSubscription<bool>? _playingSub;
 
   @override
   void initState() {
@@ -33,11 +35,24 @@ class _DynamicIslandBarState extends State<DynamicIslandBar>
     _waveCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat();
+    );
+    if (widget.controller.audioHandler.isPlaying) {
+      _waveCtrl.repeat();
+    }
+    _playingSub =
+        widget.controller.audioHandler.playingStream.listen((playing) {
+      if (!mounted) return;
+      if (playing && !_waveCtrl.isAnimating) {
+        _waveCtrl.repeat();
+      } else if (!playing && _waveCtrl.isAnimating) {
+        _waveCtrl.stop();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _playingSub?.cancel();
     _waveCtrl.dispose();
     super.dispose();
   }
@@ -65,11 +80,6 @@ class _DynamicIslandBarState extends State<DynamicIslandBar>
               initialData: handler.isPlaying,
               builder: (context, playSnap) {
                 final isPlaying = playSnap.data ?? false;
-                if (isPlaying && !_waveCtrl.isAnimating) {
-                  _waveCtrl.repeat();
-                } else if (!isPlaying && _waveCtrl.isAnimating) {
-                  _waveCtrl.stop();
-                }
 
                 return SafeArea(
                   bottom: false,

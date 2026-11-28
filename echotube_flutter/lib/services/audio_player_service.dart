@@ -309,7 +309,9 @@ class EchoTubeAudioHandler extends BaseAudioHandler
           throw StateError('No playable stream found for ${song.title}');
         }
 
-        await _player.setAudioSource(AudioSource.uri(Uri.parse(streamUrl)));
+        await _player
+            .setAudioSource(AudioSource.uri(Uri.parse(streamUrl)))
+            .timeout(const Duration(seconds: 15));
       }
 
       _autoSkipCount = 0;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,9 +47,9 @@ Future<void> main() async {
     db: DatabaseHelper.instance,
     audioHandler: audioHandler,
   );
-  await controller.init();
-
+  // Render the UI immediately so startup never stalls on SQLite/asset loading.
   runApp(EchoTubeApp(controller: controller));
+  unawaited(controller.init());
 }
 
 class EchoTubeApp extends StatelessWidget {
@@ -60,13 +62,14 @@ class EchoTubeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
+    // Only rebuild MaterialApp when Light/Dark theme actually changes.
+    return ValueListenableBuilder<bool>(
+      valueListenable: controller.themeNotifier,
+      builder: (context, isDark, _) {
         return MaterialApp(
           title: 'EchoTube',
           debugShowCheckedModeBanner: false,
-          theme: buildSpotifyTheme(isDark: controller.isDarkMode),
+          theme: buildSpotifyTheme(isDark: isDark),
           home: _EchoTubeShell(controller: controller),
         );
       },

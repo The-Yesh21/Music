@@ -37,6 +37,7 @@ class AppController extends ChangeNotifier {
   bool _isBatterySaver = false;
   bool _isDarkMode = true;
   static const String _darkModePrefKey = 'echotube_dark_mode';
+  final ValueNotifier<bool> themeNotifier = ValueNotifier<bool>(true);
   final Map<String, double> _downloadProgress = {};
   List<String> _topArtists = const [];
   List<String> _topGenres = const [];
@@ -125,6 +126,7 @@ class AppController extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isDarkMode = prefs.getBool(_darkModePrefKey) ?? true;
       SpotifyColors.setDarkMode(_isDarkMode);
+      themeNotifier.value = _isDarkMode;
 
       await _reloadFromDb();
       if (_songs.isEmpty) {
@@ -396,8 +398,16 @@ class AppController extends ChangeNotifier {
   Future<void> toggleTheme() async {
     _isDarkMode = !_isDarkMode;
     SpotifyColors.setDarkMode(_isDarkMode);
+    themeNotifier.value = _isDarkMode;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_darkModePrefKey, _isDarkMode);
+  }
+
+  @override
+  void dispose() {
+    audioHandler.currentSongNotifier.removeListener(_onCurrentSongChanged);
+    themeNotifier.dispose();
+    super.dispose();
   }
 }
